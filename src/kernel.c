@@ -36,6 +36,24 @@ void kernel_init() {
  * @param ... - variable arguments to pass in to the string format
  */
 void kernel_log_error(char *msg, ...) {
+    // Return if our log level is less than error
+    if (kernel_log_level < KERNEL_LOG_LEVEL_ERROR) {
+        return;
+    }
+
+    va_list args;
+
+    // Indicate this is an 'error' type of message
+    printf('error: ');
+
+    // Pass the message variable arguments to vprintf
+    va_start(args, msg);
+    vprintf(msg, args);
+    va_end(args);
+
+    printf("\n");
+
+
 }
 
 /**
@@ -45,6 +63,22 @@ void kernel_log_error(char *msg, ...) {
  * @param ... - variable arguments to pass in to the string format
  */
 void kernel_log_warn(char *msg, ...) {
+    // Return if our log level is less than warn
+    if (kernel_log_level < KERNEL_LOG_LEVEL_WARN) {
+        return;
+    }
+
+    va_list args;
+
+    // Indicate this is an 'warn' type of message
+    printf('warning: ');
+
+    // Pass the message variable arguments to vprintf
+    va_start(args, msg);
+    vprintf(msg, args);
+    va_end(args);
+
+    printf("\n");
 }
 
 /**
@@ -80,6 +114,22 @@ void kernel_log_info(char *msg, ...) {
  * @param ... - variable arguments to pass in to the string format
  */
 void kernel_log_debug(char *msg, ...) {
+    // Return if our log level is less than debug
+    if (kernel_log_level < KERNEL_LOG_LEVEL_DEBUG) {
+        return;
+    }
+
+    va_list args;
+
+    // Indicate this is an 'debug' type of message
+    printf('debug: ');
+
+    // Pass the message variable arguments to vprintf
+    va_start(args, msg);
+    vprintf(msg, args);
+    va_end(args);
+
+    printf("\n");
 }
 
 /**
@@ -89,6 +139,22 @@ void kernel_log_debug(char *msg, ...) {
  * @param ... - variable arguments to pass in to the string format
  */
 void kernel_log_trace(char *msg, ...) {
+    // Return if our log level is less than trace
+    if (kernel_log_level < KERNEL_LOG_LEVEL_TRACE) {
+        return;
+    }
+
+    va_list args;
+
+    // Indicate this is an 'trace' type of message
+    printf('trace: ');
+
+    // Pass the message variable arguments to vprintf
+    va_start(args, msg);
+    vprintf(msg, args);
+    va_end(args);
+
+    printf("\n");
 }
 
 /**
