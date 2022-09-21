@@ -44,7 +44,7 @@ void kernel_log_error(char *msg, ...) {
     va_list args;
 
     // Indicate this is an 'error' type of message
-    printf('error: ');
+    printf("error: ");
 
     // Pass the message variable arguments to vprintf
     va_start(args, msg);
@@ -71,7 +71,7 @@ void kernel_log_warn(char *msg, ...) {
     va_list args;
 
     // Indicate this is an 'warn' type of message
-    printf('warning: ');
+    printf("warning: ");
 
     // Pass the message variable arguments to vprintf
     va_start(args, msg);
@@ -122,7 +122,7 @@ void kernel_log_debug(char *msg, ...) {
     va_list args;
 
     // Indicate this is an 'debug' type of message
-    printf('debug: ');
+    printf("debug: ");
 
     // Pass the message variable arguments to vprintf
     va_start(args, msg);
@@ -147,7 +147,7 @@ void kernel_log_trace(char *msg, ...) {
     va_list args;
 
     // Indicate this is an 'trace' type of message
-    printf('trace: ');
+    printf("trace: ");
 
     // Pass the message variable arguments to vprintf
     va_start(args, msg);
