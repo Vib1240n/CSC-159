@@ -32,7 +32,7 @@ int vga_cursor = 0;
  */
 void vga_init(void) {
     kernel_log_info("Initializing VGA driver");
-
+    
     if (vga_cursor) {
         // Enable the cursor
         vga_cursor_enable();
@@ -43,6 +43,7 @@ void vga_init(void) {
 
     // Clear the screen
     vga_clear();
+    
 }
 
 /**
