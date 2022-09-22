@@ -12,12 +12,12 @@
 #include <spede/stdbool.h>
 
 int main(void) {
-    unsigned char spinner[] = "/-\\|";
+    /* unsigned char spinner[] = "/-\\|";
     int spin = 0;
     int counter = 0;
     int running = true;
     int esc_count = 0;
-    unsigned char c;
+    unsigned char c; */
 
     // Always iniialize the kernel
     kernel_init();
@@ -28,6 +28,13 @@ int main(void) {
     // Initialize the keyboard driver
     keyboard_init();
 
+    // Letter A will print with black background and green foreground
+    *(unsigned short *)(0xB8000) = (unsigned short)0x0A41;
+    // Letter B will print with blur background and white foreground
+    *(unsigned short *)(0xB801E) = (unsigned short)0x1F42;
+
+
+/* 
     // Print a welcome message
     vga_printf("Welcome to %s!\n", OS_NAME);
     vga_puts("Press a key to continue...\n");
@@ -86,7 +93,7 @@ int main(void) {
                         VGA_COLOR_BLACK, VGA_COLOR_GREEN,
                         spinner[spin++ % (sizeof(spinner) - 1)]);
         }
-    }
+    } 
 
     vga_set_bg(VGA_COLOR_RED);
     vga_set_fg(VGA_COLOR_WHITE);
@@ -94,6 +101,6 @@ int main(void) {
     vga_printf("%*s", 80, "");
     vga_set_xy(0, 0);
     vga_printf("Exiting %s...\n", OS_NAME);
-
+*/
     return 0;
 }
