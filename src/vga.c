@@ -253,6 +253,10 @@ void vga_putc(char c) {
  * @param s - string to print
  */
 void vga_puts(char *s) {
+
+    for(int i=0; s[i] != '\0'; i++){
+        vga_putc(s[i]);
+    }
 }
 
 /**
