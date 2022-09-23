@@ -253,8 +253,10 @@ void vga_puts(char *s) {
  * @param c - character to print
  */
 void vga_putc_at(int x, int y, int bg, int fg, char c) {
+    // Create a variable to store the base address and row/column
+    unsigned short *vga_base = (unsigned short*)(0xB8000);
 
-
+    *(unsigned short *)(vga_base + x * 80 + y) = (unsigned short)VGA_CHAR(bg, fg, c);
 
 }
 
