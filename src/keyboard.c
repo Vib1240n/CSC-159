@@ -36,7 +36,7 @@ void keyboard_init() {
  * @return raw character data from the keyboard
  */
 unsigned int keyboard_scan(void) {
-    unsigned int c = KEY_NULL;
+    unsigned int c = inportb(0x60);
     return c;
 }
 
@@ -51,6 +51,15 @@ unsigned int keyboard_scan(void) {
  */
 unsigned int keyboard_poll(void) {
     unsigned int c = KEY_NULL;
+    unsigned int status = inportb(0x64);
+    if (status == 29) {
+        /*
+        while ((c = keyboard_scan()) == KEY_NULL) {
+            c = keyboard_scan();
+        }*/
+        c = keyboard_scan();
+        kernel_log_info("Key press - %u [0x%x]", c, c);
+    }
     return c;
 }
 
@@ -62,19 +71,23 @@ unsigned int keyboard_poll(void) {
 unsigned int keyboard_getc(void) {
     unsigned int c = KEY_NULL;
     while ((c = keyboard_poll()) == KEY_NULL) {
-        /**
+    //while (1) {
+        /*
         unsigned int status;
         if (status != inportb(0x64)) {
             status = inportb(0x64);
             kernel_log_info("Keyboard Status - %u [0x%x]", status, status);
         }
-        **/
+        */
+        /*
         unsigned int c;
-        if (c != inportb(0x60)) {
-            c = inportb(0x60);
+        if (c != keyboard_poll()) {
+            c = keyboard_poll();
             kernel_log_info("Keyboard Data - %u [0x%x]", c, c);
         }
+        */
     }
+    kernel_log_info("Keyboard Data - %u [0x%x]", c, c);
     return c;
 }
 
