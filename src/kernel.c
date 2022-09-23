@@ -25,7 +25,7 @@ int kernel_log_level = KERNEL_LOG_LEVEL_DEFAULT;
 void kernel_init() {
     // Display a welcome message on the host
     kernel_log_info("Welcome to %s!", OS_NAME);
-    
+
     kernel_log_info("Initializing kernel...");
 }
 
