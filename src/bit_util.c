@@ -48,3 +48,17 @@ int bit_set(int value, int bit) {
 /**
  * Clears the specified bit in the given integer value
  * @param value - the integer value to modify
+ * @param bit - which bit to clear
+ */
+int bit_clear(int value, int bit) {
+    return value = value & ~(1 << bit);
+}
+
+/**
+ * Toggles the specified bit in the given integer value
+ * @param value - the integer value to modify
+ * @param bit - which bit to toggle
+ */
+int bit_toggle(int value, int bit) {
+    return value = value ^ (1 << bit);
+}
