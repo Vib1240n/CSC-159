@@ -210,7 +210,7 @@ void vga_setc(char c) {
     // Create a variable to store the base address and row/column
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
-    *(unsigned short *)(vga_base + vga_pos_x * 80 + vga_pos_y) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+    *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
     
 }
 
@@ -231,7 +231,19 @@ void vga_setc(char c) {
  * @param c - character to print
  */
 void vga_putc(char c) {
+    // Create a variable to store the base address and row/column
+    unsigned short *vga_base = (unsigned short*)(0xB8000);
 
+    *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+
+    vga_pos_x += 1;
+
+    if(vga_pos_x > VGA_WIDTH - 1){
+        vga_pos_x = 0;
+        vga_pos_y += 1;
+    }
+
+    // TODO: handle special characters 
 
 }
 
@@ -260,7 +272,7 @@ void vga_putc_at(int x, int y, int bg, int fg, char c) {
     // Create a variable to store the base address and row/column
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
-    *(unsigned short *)(vga_base + x * 80 + y) = (unsigned short)VGA_CHAR(bg, fg, c);
+    *(unsigned short *)(vga_base + y * 80 + x) = (unsigned short)VGA_CHAR(bg, fg, c);
 
 }
 
