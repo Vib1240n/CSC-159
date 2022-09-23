@@ -118,6 +118,27 @@ void vga_clear(void) {
  *        will be set to the range boundary (min or max)
  */
 void vga_set_xy(int x, int y) {
+
+    if(x < 0){
+        vga_pos_x = 0;
+    }
+    else if(x > VGA_WIDTH -1){
+        vga_pos_x = VGA_WIDTH -1;
+    }
+    else{
+        vga_pos_x = x;
+    }
+
+    if(y < 0){
+        vga_pos_y = 0;
+    }
+    else if(y > VGA_HEIGHT -1){
+        vga_pos_y = VGA_HEIGHT -1;
+    }
+    else{
+        vga_pos_y = y;
+    }
+
 }
 
 /**
@@ -145,6 +166,7 @@ int vga_get_y(void) {
  * @param bg - background color
  */
 void vga_set_bg(int bg) {
+    vga_color_bg = bg;
 }
 
 /**
@@ -164,6 +186,7 @@ int vga_get_bg(void) {
  * @param color - background color
  */
 void vga_set_fg(int fg) {
+    vga_color_fg = fg;
 }
 
 /**
@@ -184,6 +207,7 @@ int vga_get_fg(void) {
  * @param c - Character to print
  */
 void vga_setc(char c) {
+    
 }
 
 /**
@@ -203,6 +227,8 @@ void vga_setc(char c) {
  * @param c - character to print
  */
 void vga_putc(char c) {
+
+
 }
 
 /**
@@ -227,6 +253,9 @@ void vga_puts(char *s) {
  * @param c - character to print
  */
 void vga_putc_at(int x, int y, int bg, int fg, char c) {
+
+
+
 }
 
 /**
