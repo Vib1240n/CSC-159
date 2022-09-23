@@ -207,6 +207,10 @@ int vga_get_fg(void) {
  * @param c - Character to print
  */
 void vga_setc(char c) {
+    // Create a variable to store the base address and row/column
+    unsigned short *vga_base = (unsigned short*)(0xB8000);
+
+    *(unsigned short *)(vga_base + vga_pos_x * 80 + vga_pos_y) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
     
 }
 
