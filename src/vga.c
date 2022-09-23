@@ -293,5 +293,15 @@ void vga_putc_at(int x, int y, int bg, int fg, char c) {
  * @param s - string to print
  */
 void vga_puts_at(int x, int y, int bg, int fg, char *s) {
+
+    for(int i=0; s[i] != '\0'; i++){
+        vga_putc_at(x, y, bg, fg, s[i]);
+        x++;
+        if(x > VGA_WIDTH - 1){
+            x = 0;
+            y += 1;
+        }
+        // TODO: cover case if reaches bottom of VGA_HEIGHT
+    }
 }
 
