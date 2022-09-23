@@ -80,7 +80,6 @@ unsigned int keyboard_poll(void) {
 unsigned int keyboard_getc(void) {
     unsigned int c = KEY_NULL;
     while ((c = keyboard_poll()) == KEY_NULL);
-    kernel_log_info("Keyboard Data - %u [0x%x]", c, c);
     return c;
 }
 
