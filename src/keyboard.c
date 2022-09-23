@@ -61,7 +61,20 @@ unsigned int keyboard_poll(void) {
  */
 unsigned int keyboard_getc(void) {
     unsigned int c = KEY_NULL;
-    while ((c = keyboard_poll()) == KEY_NULL);
+    while ((c = keyboard_poll()) == KEY_NULL) {
+        /**
+        unsigned int status;
+        if (status != inportb(0x64)) {
+            status = inportb(0x64);
+            kernel_log_info("Keyboard Status - %u [0x%x]", status, status);
+        }
+        **/
+        unsigned int c;
+        if (c != inportb(0x60)) {
+            c = inportb(0x60);
+            kernel_log_info("Keyboard Data - %u [0x%x]", c, c);
+        }
+    }
     return c;
 }
 
