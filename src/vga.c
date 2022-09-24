@@ -235,16 +235,65 @@ void vga_putc(char c) {
     // Create a variable to store the base address and row/column
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
-    *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+    printf("\n Character here");
+    printf("%c", c);
+    printf("\n");
 
-    vga_pos_x += 1;
+    // Handling backspace
+    if(c == 0x08){
+        c = 0x00; 
+        *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+        vga_pos_x -= 1;
+        
+        if(vga_pos_x < 0 && vga_pos_y > 0){
+            vga_pos_x = VGA_WIDTH - 1;
+            vga_pos_y -= 1;
+        }
+        else if(vga_pos_x < 0 && vga_pos_y < 0){
+            vga_pos_x = 0;
+            vga_pos_y = 0;
+        }
+    }
+    // For Tab
+    else if(c == 0x09){
+        c = 0x20; 
+        for(int j=0; j<4; j++){
+            *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+            vga_pos_x += 1;
+
+            if(vga_pos_x < 0 && vga_pos_y > 0){
+                vga_pos_x = VGA_WIDTH - 1;
+                vga_pos_y -= 1;
+            }
+            else if(vga_pos_x < 0 && vga_pos_y < 0){
+                vga_pos_x = 0;
+                vga_pos_y = 0;
+            }
+        }
+
+    }
+    // For Carriage Return
+    else if(c == 0x0D){
+        vga_pos_x = 0;
+    }
+    // For New Line
+    else if(c == 0x0A){
+        vga_pos_x = 0;
+        vga_pos_y += 1;
+    }
+    else{ 
+        *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+        vga_pos_x += 1;
+    }
+    
 
     if(vga_pos_x > VGA_WIDTH - 1){
         vga_pos_x = 0;
         vga_pos_y += 1;
     }
+    vga_cursor_update();
 
-    // TODO: handle special characters 
+    
 
 }
 
