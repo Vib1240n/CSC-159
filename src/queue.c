@@ -17,6 +17,14 @@
  * @return -1 on error; 0 on success
  */
 int queue_init(queue_t *queue) {
+
+    if (!queue)
+        return -1;
+
+    queue->head = -1;
+    queue->tail = -1;
+    queue->size = 0;
+
     return 0;
 }
 
@@ -27,6 +35,21 @@ int queue_init(queue_t *queue) {
  * @return -1 on error; 0 on success
  */
 int queue_in(queue_t *queue, int item) {
+    if (queue_is_full(queue)) {
+        return -1;
+    } else {
+        if (queue->head == -1) {
+            queue->head = 0;
+        }
+
+        queue->tail = (queue->tail + 1) % QUEUE_SIZE;
+
+
+        queue->items[queue->tail] = item;
+
+
+    }
+
     return 0;
 }
 
@@ -37,7 +60,22 @@ int queue_in(queue_t *queue, int item) {
  * @return -1 on error; 0 on success
  */
 int queue_out(queue_t *queue, int *item) {
-    return 0;
+
+    if (queue_is_empty(queue)) {
+        return -1;
+    } else {
+
+        *item = queue->items[queue->head];
+        if (queue->head == queue->tail) {
+            queue->head = -1;
+            queue->tail = -1;
+        } else {
+            queue->head = (queue->head + 1) % QUEUE_SIZE;
+        }
+
+
+        return 0;
+    }
 }
 
 /**
@@ -46,6 +84,8 @@ int queue_out(queue_t *queue, int *item) {
  * @return true if empty, false if not empty
  */
 bool queue_is_empty(queue_t *queue) {
+    if (queue->head == -1)
+        return true;
     return false;
 }
 
@@ -55,6 +95,10 @@ bool queue_is_empty(queue_t *queue) {
  * @return true if full, false if not full
  */
 bool queue_is_full(queue_t *queue) {
+    if ((queue->head == queue->tail + 1) || (queue->head == 0 && queue->tail == QUEUE_SIZE - 1)) {
+        return true;
+    }
+
     return false;
 }
 
