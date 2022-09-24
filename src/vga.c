@@ -236,10 +236,6 @@ void vga_putc(char c) {
     // Create a variable to store the base address and row/column
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
-    printf("\n Character here");
-    printf("%c", c);
-    printf("\n");
-
     // Handling backspace
     if(c == 0x08){
         c = 0x00; 
