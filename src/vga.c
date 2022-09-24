@@ -349,11 +349,18 @@ void vga_puts_at(int x, int y, int bg, int fg, char *s) {
     for(int i=0; s[i] != '\0'; i++){
         vga_putc_at(x, y, bg, fg, s[i]);
         x++;
-        if(x > VGA_WIDTH - 1){
+        if(x > VGA_WIDTH - 1 && y < VGA_HEIGHT - 1){
             x = 0;
             y += 1;
         }
-        // TODO: cover case if reaches bottom of VGA_HEIGHT
+        else if(x > VGA_WIDTH - 1 && y > VGA_HEIGHT - 1){
+            x = 0;
+            y = VGA_HEIGHT - 1;
+        }
+        else if(y > VGA_HEIGHT - 1){
+            y = VGA_HEIGHT - 1;
+        }        
+        
     }
 }
 
