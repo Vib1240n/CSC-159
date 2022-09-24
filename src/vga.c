@@ -212,6 +212,7 @@ void vga_setc(char c) {
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
     *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
+    vga_cursor_update();
     
 }
 
@@ -327,6 +328,7 @@ void vga_putc_at(int x, int y, int bg, int fg, char c) {
     unsigned short *vga_base = (unsigned short*)(0xB8000);
 
     *(unsigned short *)(vga_base + y * 80 + x) = (unsigned short)VGA_CHAR(bg, fg, c);
+    vga_cursor_update();
 
 }
 
