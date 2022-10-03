@@ -10,6 +10,10 @@
 
 #ifndef ASSEMBLER
 
+#ifndef OS_NAME
+#define OS_NAME "MyOS"
+#endif
+
 // List of kernel log levels in order of severity
 typedef enum log_level {
     KERNEL_LOG_LEVEL_NONE,  // No Logging!
@@ -82,6 +86,24 @@ void kernel_log_trace(char *msg, ...);
  * @param ... - variable arguments to pass in to the string format
  */
 void kernel_panic(char *msg, ...);
+
+/**
+ * Returns the current log level
+ * @return the kernel log level
+ */
+int kernel_get_log_level(void);
+
+/**
+ * Sets the new log level and returns the value set
+ * @param level - the log level to set
+ * @return the kernel log level
+ */
+int kernel_set_log_level(int level);
+
+/**
+ * Exits the kernel
+ */
+void kernel_exit(void);
 
 #endif
 #endif
