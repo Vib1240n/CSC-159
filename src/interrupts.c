@@ -175,3 +175,14 @@ void interrupts_init() {
     memset(irq_handlers, 0, sizeof(irq_handlers));
 }
 
+//REMEMBER TO DELETE
+void tester(void) {
+    int c = inportb(0x20);
+    int d = inportb(0x21);
+    int e = inportb(0xA0);
+    int f = inportb(0xA1);
+    kernel_log_info("Primary PIC Command %u[0x%x]", c, c);
+    kernel_log_info("Primary PIC Data %u[0x%x]", d, d);
+    kernel_log_info("Secondary PIC Command %u[0x%x]", e, e);
+    kernel_log_info("Secondary PIC Data %u[0x%x]", f, f);
+}
