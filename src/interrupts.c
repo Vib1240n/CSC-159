@@ -12,6 +12,7 @@
 
 #include "kernel.h"
 #include "interrupts.h"
+#include "bit_util.h"
 
 // Maximum number of ISR handlers
 #define IRQ_MAX      0xf0
@@ -121,25 +122,19 @@ void interrupts_irq_register(int irq, void (*entry)(), void (*handler)()) {
  */
 void pic_irq_enable(int irq) {
     // Determine the PIC to be used for the given IRQ number
-    int pic_cmd;
-    int pic_data;
-    if (irq >= 0x20 && irq <= 0x27) {
-        pic_cmd = PIC1_CMD;
-        pic_data = PIC1_DATA;
-    }
-    if (irq >= 0x28 && irq <= 0x2F) {
-        pic_cmd = PIC2_CMD;
-        pic_data = PIC2_DATA;
-    }
-    outportb(pic_cmd, irq);
-    outportb(pic_data, 0x01);
-    //kernel_log_info("PIC CMD Type 0x%x", pic_cmd);
-    //kernel_log_info("PIC DATA Type 0x%x", pic_data);
-    kernel_log_info("read pic_cmd 0x%x", inportb(pic_cmd));
-    kernel_log_info("read pic_data 0x%x", inportb(pic_data));
     // Read the current mask
     // Clear the associated bit in the mask to enable the IRQ
     // Write the mask out to the PIC
+    int mask;
+    if (irq >= 0x20 && irq <= 0x27) { // If PIC1 is used
+        mask = bit_clear(inportb(PIC1_DATA), irq);
+        outportb(PIC1_DATA, mask);
+    }
+    if (irq >= 0x28 && irq <= 0x2F) { // If PIC2 is used
+        outportb(PIC1_DATA, 0xFB);
+        mask = bit_clear(inportb(PIC2_DATA), irq - 8);
+        outportb(PIC2_DATA, mask);
+    }
 }
 
 /**
