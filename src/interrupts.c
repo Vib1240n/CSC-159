@@ -121,6 +121,22 @@ void interrupts_irq_register(int irq, void (*entry)(), void (*handler)()) {
  */
 void pic_irq_enable(int irq) {
     // Determine the PIC to be used for the given IRQ number
+    int pic_cmd;
+    int pic_data;
+    if (irq >= 0x20 && irq <= 0x27) {
+        pic_cmd = PIC1_CMD;
+        pic_data = PIC1_DATA;
+    }
+    if (irq >= 0x28 && irq <= 0x2F) {
+        pic_cmd = PIC2_CMD;
+        pic_data = PIC2_DATA;
+    }
+    outportb(pic_cmd, irq);
+    outportb(pic_data, 0x01);
+    //kernel_log_info("PIC CMD Type 0x%x", pic_cmd);
+    //kernel_log_info("PIC DATA Type 0x%x", pic_data);
+    kernel_log_info("read pic_cmd 0x%x", inportb(pic_cmd));
+    kernel_log_info("read pic_data 0x%x", inportb(pic_data));
     // Read the current mask
     // Clear the associated bit in the mask to enable the IRQ
     // Write the mask out to the PIC
@@ -160,7 +176,9 @@ int pic_irq_enabled(int irq) {
  */
 void pic_irq_dismiss(int irq) {
     // Send EOI to the secondary PIC, if needed
+    //outportb(PIC2_CMD, PIC_EOI);
     // Send EOI to the primary PIC, if needed
+    outportb(PIC1_CMD, PIC_EOI);
 }
 
 /**
@@ -177,10 +195,10 @@ void interrupts_init() {
 
 //REMEMBER TO DELETE
 void tester(void) {
-    int c = inportb(0x20);
-    int d = inportb(0x21);
-    int e = inportb(0xA0);
-    int f = inportb(0xA1);
+    int c = inportb(PIC1_CMD);
+    int d = inportb(PIC1_DATA);
+    int e = inportb(PIC2_CMD);
+    int f = inportb(PIC2_DATA);
     kernel_log_info("Primary PIC Command %u[0x%x]", c, c);
     kernel_log_info("Primary PIC Data %u[0x%x]", d, d);
     kernel_log_info("Secondary PIC Command %u[0x%x]", e, e);

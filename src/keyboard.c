@@ -3,6 +3,8 @@
 
 #include "kernel.h"
 #include "keyboard.h"
+#include "interrupts.h"
+#include "vga.h"
 
 // Keyboard data port
 #define KBD_PORT_DATA           0x60
@@ -31,6 +33,12 @@ int shift;
 int caps;
 int numlock;
 
+void keyboard_irq_handler(void) {
+    unsigned int c;
+    c = keyboard_poll();
+    vga_putc(c);
+}
+
 /**
  * Initializes keyboard data structures and variables
  */
@@ -41,6 +49,8 @@ void keyboard_init() {
     shift = 0;
     caps = 0;
     numlock = 0;
+
+    interrupts_irq_register(IRQ_KEYBOARD, isr_entry_keyboard, keyboard_irq_handler);
 }
 
 /**
@@ -48,7 +58,7 @@ void keyboard_init() {
  * @return raw character data from the keyboard
  */
 unsigned int keyboard_scan(void) {
-    unsigned int c = inportb(0x60);
+    unsigned int c = inportb(KBD_PORT_DATA);
     return c;
 }
 
