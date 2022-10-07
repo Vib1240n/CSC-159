@@ -34,9 +34,10 @@ int caps;
 int numlock;
 
 void keyboard_irq_handler(void) {
-    unsigned int c;
-    c = keyboard_poll();
-    vga_putc(c);
+    unsigned int c = keyboard_poll();
+    if (c) {
+        vga_putc(c);
+    }
 }
 
 /**
