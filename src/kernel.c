@@ -181,3 +181,20 @@ void kernel_panic(char *msg, ...) {
     exit(1);
 }
 
+int kernel_get_log_level (void) {
+    return kernel_log_level;
+}
+
+int kernel_set_log_level (int level) {
+    if (level >= KERNEL_LOG_LEVEL_NONE && level <= KERNEL_LOG_LEVEL_ALL) {
+        kernel_log_level = level;
+    }
+    kernel_log_info("Kernel log level - %i", kernel_log_level);
+    return kernel_log_level;
+}
+
+void kernel_exit (void) {
+    printf("Kernel exiting.");
+    printf("\n");
+    exit(0);
+}

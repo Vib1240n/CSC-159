@@ -50,10 +50,6 @@ int main(void) {
     // Enable interrupts
     interrupts_enable();
 
-    //tester();
-    kernel_log_info("%i", pic_irq_enabled(IRQ_KEYBOARD));
-    kernel_log_info("%i", pic_irq_enabled(IRQ_TIMER));
-
     // Loop in place forever
     while (1);
 
