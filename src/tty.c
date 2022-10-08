@@ -73,13 +73,16 @@ void tty_update(char c) {
  * Initializes all TTY data structures and memory
  * Selects TTY 0 to be the default
  */
+
 void tty_init(void) {
     kernel_log_info("tty: Initializing TTY driver");
-    this.x = 0;
-    this.y = 0;
-    this.refresh = 0;
+
+    //this.x = 0;
+    //this.y = 0;
+    //this.refresh = 0;
 
     // Initialize the tty_table
+    
 
     // Select tty 0 to start with
 
