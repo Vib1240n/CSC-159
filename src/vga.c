@@ -277,6 +277,19 @@ void vga_putc(char c) {
     else if(c == 0x0A){
         vga_pos_x = 0;
         vga_pos_y += 1;
+        if(vga_pos_y > VGA_HEIGHT-2){
+            for(int i=0; i< VGA_HEIGHT-1; i++){
+                for(int j=0; j< VGA_WIDTH; j++){
+                    *(unsigned short *)(vga_base + i * 80 + j)= *(unsigned short*)(vga_base + (i+1) * 80 + j);
+                }
+            }
+            vga_pos_y = VGA_HEIGHT-1;
+            for(int h=0; h< VGA_WIDTH-1; h++){
+                *(unsigned short *)(vga_base + vga_pos_y * 80 + h) = (unsigned short )VGA_CHAR(vga_color_bg, vga_color_fg, 0x00);
+            }
+                    
+
+        }
     }
     else{ 
         *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
