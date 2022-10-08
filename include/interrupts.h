@@ -69,6 +69,7 @@ int pic_irq_enabled(int irq);
  */
 void pic_irq_dismiss(int irq);
 
+void tester(void); //REMEMBER TO DELETE
 
 __BEGIN_DECLS
 
