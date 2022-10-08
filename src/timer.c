@@ -59,8 +59,11 @@ int timer_callback_register(void (*func_ptr)(), int interval, int repeat) {
     }
 
     // Set the callback function for the timer
+
     // Set the interval value for the timer
+    interval = 100;
     // Set the repeat value for the timer
+    repeat = -1;
 
     return timer_id;
 }
@@ -117,6 +120,7 @@ void timer_irq_handler(void) {
             // If the timer interval is hit, run the callback function
 
             // If the timer repeat is greater than 0, decrement
+            //if()
             // If the timer repeat is equal to 0, unregister the timer
             // If the timer repeat is less than 0, do nothing
 }
@@ -128,13 +132,25 @@ void timer_init(void) {
     kernel_log_info("Initializing timer");
 
     // Set the starting tick value
+    timer_ticks = 0;
 
     // Initialize the timers data structures
 
+    for(int i=0; i<TIMERS_MAX; i++){
+        timers[i].callback(&timer_callback_register);
+        timers[i].interval = 100;
+        timers[i].repeat = -1;
+    }
+
     // Initialize the timer callback allocator queue
+    queue_init(&timer_allocator);
 
     // Populate items into the allocator queue
+    for(int i=0; i<TIMERS_MAX; i++){
+        queue_in(&timer_allocator, i);
+    }
 
     // Register the Timer IRQ with the isr_entry_timer and timer_irq_handler
+
 }
 
