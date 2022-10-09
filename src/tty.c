@@ -100,7 +100,7 @@ void tty_update(char c) {
         c = 0x20; 
         for(int j=0; j<4; j++){
             active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
-            active_tty->pos_x += 
+            active_tty->pos_x += 1;
             if(active_tty->pos_x < 0 && active_tty->pos_y > 0){
                 active_tty->pos_x = VGA_WIDTH - 1;
                 active_tty->pos_y -= 1;
@@ -110,6 +110,7 @@ void tty_update(char c) {
                 active_tty->pos_y = 0;
             }
        
+        }
     }
     // For Carriage Return
     else if(c == 0x0D){
