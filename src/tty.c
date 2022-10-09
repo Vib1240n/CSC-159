@@ -62,12 +62,12 @@ void tty_update(char c) {
     if (!active_tty) {
         return;
     }
-
+    unsigned int buf_id = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
     // Since this is a virtual wrapper around the VGA display, treat each
     // input character as you would for the VGA output
     //   Adjust the x/y positions as necessary
     //   Handle scrolling at the bottom
-    active_tty->buf[active_tty->id] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+    active_tty->buf[buf_id] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
 
     // Instead of writing to the VGA display directly, you will write
     // to the tty buffer.
