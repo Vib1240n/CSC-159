@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "interrupts.h"
 #include "vga.h"
+#include "tty.h"
 
 // Keyboard data port
 #define KBD_PORT_DATA           0x60
@@ -38,7 +39,8 @@ int esc_count = 0;
 void keyboard_irq_handler(void) {
     unsigned int c = keyboard_poll();
     if (c) {
-        vga_putc(c);
+        //vga_putc(c);
+        tty_update(c);
     }
 }
 
@@ -104,6 +106,12 @@ unsigned int keyboard_poll(void) {
         //Ctrl- decrease log level
         if (c == 0x2D && ctrl == 1) {
             kernel_set_log_level(kernel_get_log_level() - 1);
+            return KEY_NULL;
+        }
+
+        //Alt (0-9) with tty select
+        if ((c >= 0x30 && c <= 0x39) && alt == 1) {
+            tty_select(c);
             return KEY_NULL;
         }
     }
