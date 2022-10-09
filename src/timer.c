@@ -45,7 +45,9 @@ queue_t timer_allocator;
  * @return the allocated timer id or -1 for errors
  */
 int timer_callback_register(void (*func_ptr)(), int interval, int repeat) {
-    int timer_id = -1;
+    //int timer_id = -1;
+
+    
 
     if (!func_ptr) {
         kernel_log_error("timer: invalid function pointer");
@@ -53,17 +55,22 @@ int timer_callback_register(void (*func_ptr)(), int interval, int repeat) {
     }
 
     // Obtain a timer id
+    int timer_id = timer_allocator.head;
     if (queue_out(&timer_allocator, &timer_id) != 0) {
         kernel_log_error("timer: unable to allocate a timer");
         return -1;
     }
+    
+    timer_t *timer;
+    timer = &timers[timer_id];
+    
 
     // Set the callback function for the timer
-
+    timer->callback = func_ptr;
     // Set the interval value for the timer
-    interval = 100;
+    timer->interval = interval;
     // Set the repeat value for the timer
-    repeat = -1;
+    timer->repeat = repeat;
 
     return timer_id;
 }
@@ -116,13 +123,32 @@ void timer_irq_handler(void) {
     timer_ticks++;
 
     // Iterate through the timers table
+    for(int i = 0; i< TIMERS_MAX; i++){
+        timer_t *timer;
+        timer = &timers[i];
+        
         // If we have a valid callback, check if it needs to be called
+        if(timer->callback) {
             // If the timer interval is hit, run the callback function
-
+            if(timer->interval >= timer_ticks){
+                timer->callback();
+            }
             // If the timer repeat is greater than 0, decrement
-            //if()
+            if(timer->repeat > 0) {
+                timer->repeat -= 1;
+            }
             // If the timer repeat is equal to 0, unregister the timer
+            if(timer->repeat == 0) {
+                timer_callback_unregister(i);
+            }
             // If the timer repeat is less than 0, do nothing
+            if(timer->repeat < 0) {}
+        }
+            
+    }
+
+    
+        
 }
 
 /**
@@ -136,10 +162,14 @@ void timer_init(void) {
 
     // Initialize the timers data structures
 
+    timer_t *timer;
+
+
     for(int i=0; i<TIMERS_MAX; i++){
-        timers[i].callback(&timer_callback_register);
-        timers[i].interval = 100;
-        timers[i].repeat = -1;
+        timer = &timers[i];
+        timer[i].callback = NULL;
+        timer[i].interval = 100;
+        timer[i].repeat = -1;
     }
 
     // Initialize the timer callback allocator queue
@@ -151,6 +181,9 @@ void timer_init(void) {
     }
 
     // Register the Timer IRQ with the isr_entry_timer and timer_irq_handler
+
+    interrupts_irq_register(IRQ_TIMER, isr_entry_timer, timer_irq_handler);
+
 
 }
 
