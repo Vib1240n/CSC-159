@@ -38,15 +38,23 @@ void tty_select(int n) {
  * Refreshes the tty if needed
  */
 void tty_refresh(void) {
+
+    unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
     
     if (!active_tty) {
         kernel_panic("No TTY is selected!");
         return;
     }
-    // }else {
-    //     vga_putc_at(active_tty->pos_x, active_tty->pos_y, active_tty->color_bg, active_tty->color_fg, c);
-    //     active_tty->refresh = 0;
-    // }
+
+
+    if(active_tty->refresh == 1) {
+
+
+        vga_putc_at(active_tty->pos_x, active_tty->pos_y, active_tty->color_bg, active_tty->color_fg, active_tty->buf[buf_pos]);
+
+
+        active_tty->refresh = 0;
+    }
 
     // If the TTY needs to be refreshed, copy the tty buffer
     // to the VGA output.
@@ -62,7 +70,7 @@ void tty_update(char c) {
     if (!active_tty) {
         return;
     }
-    unsigned int buf_id = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
+    unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
     // Since this is a virtual wrapper around the VGA display, treat each
     // input character as you would for the VGA output
     //   Adjust the x/y positions as necessary
@@ -70,7 +78,7 @@ void tty_update(char c) {
 
     
 
-    active_tty->buf[buf_id] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+    active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
     active_tty->pos_x += 1;
 
 
