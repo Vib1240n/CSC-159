@@ -37,13 +37,15 @@ void tty_select(int n) {
  * Refreshes the tty if needed
  */
 void tty_refresh(void) {
+    
     if (!active_tty) {
         kernel_panic("No TTY is selected!");
         return;
-    }else {
-        vga_putc_at(active_tty->pos_x, active_tty->pos_y, active_tty->color_bg, active_tty->color_fg, c);
-        active_tty->refresh = 0;
     }
+    // }else {
+    //     vga_putc_at(active_tty->pos_x, active_tty->pos_y, active_tty->color_bg, active_tty->color_fg, c);
+    //     active_tty->refresh = 0;
+    // }
 
     // If the TTY needs to be refreshed, copy the tty buffer
     // to the VGA output.
@@ -163,6 +165,6 @@ void tty_init(void) {
     tty_select(0);
 
     // Register a timer callback to update the screen on a regular interval
-    timer_callback_register(tty_refresh(), 100, -1);
+    timer_callback_register(&tty_refresh, 100, -1);
 }
 
