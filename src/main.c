@@ -35,7 +35,7 @@ int main(void) {
     keyboard_init();
 
     // Test initialization
-    //test_init();
+    test_init();
 
     // Print a welcome message
     vga_printf("Welcome to %s!\n", OS_NAME);
