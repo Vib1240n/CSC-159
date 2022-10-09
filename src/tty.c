@@ -30,7 +30,7 @@ void tty_select(int n) {
     active_tty = &tty_table[n];
     // if a new tty is selected, the tty should trigger a refresh
     if(active_tty->refresh != 0){
-        tty_refresh();
+        // tty_refresh();
     }
 }
 
@@ -67,7 +67,7 @@ void tty_update(char c) {
     // input character as you would for the VGA output
     //   Adjust the x/y positions as necessary
     //   Handle scrolling at the bottom
-    active_tty->buf[] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+    active_tty->buf[active_tty->id] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
 
     // Instead of writing to the VGA display directly, you will write
     // to the tty buffer.
