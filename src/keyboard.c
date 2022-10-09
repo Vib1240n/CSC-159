@@ -3,6 +3,9 @@
 
 #include "kernel.h"
 #include "keyboard.h"
+#include "interrupts.h"
+#include "vga.h"
+#include "tty.h"
 
 // Keyboard data port
 #define KBD_PORT_DATA           0x60
@@ -31,6 +34,16 @@ int shift;
 int caps;
 int numlock;
 
+int esc_count = 0;
+
+void keyboard_irq_handler(void) {
+    unsigned int c = keyboard_poll();
+    if (c) {
+        //vga_putc(c);
+        tty_update(c);
+    }
+}
+
 /**
  * Initializes keyboard data structures and variables
  */
@@ -41,6 +54,8 @@ void keyboard_init() {
     shift = 0;
     caps = 0;
     numlock = 0;
+
+    interrupts_irq_register(IRQ_KEYBOARD, isr_entry_keyboard, keyboard_irq_handler);
 }
 
 /**
@@ -48,7 +63,7 @@ void keyboard_init() {
  * @return raw character data from the keyboard
  */
 unsigned int keyboard_scan(void) {
-    unsigned int c = inportb(0x60);
+    unsigned int c = inportb(KBD_PORT_DATA);
     return c;
 }
 
@@ -63,11 +78,42 @@ unsigned int keyboard_scan(void) {
  */
 unsigned int keyboard_poll(void) {
     unsigned int c = KEY_NULL;
-    unsigned int status = inportb(0x64);
-    if (status == 29) {
-        unsigned d = keyboard_scan();
-        c = keyboard_decode(d);
-        kernel_log_info("Key press [%c] - %u [0x%x]", c, d, d);
+    //unsigned int status = inportb(KBD_PORT_STAT);
+    if ((inportb(KBD_PORT_STAT) & 0x1) == 1) {
+        c = keyboard_scan();
+        c = keyboard_decode(c);
+        //kernel_log_info("Key press [%c] - %u [0x%x]", c, d, d);
+
+        //QUIT WITH ESC THREE TIMEs
+        if (c == KEY_ESCAPE) {
+            esc_count++;
+
+            if (esc_count == 3) {
+                kernel_exit();
+            }
+
+            c = KEY_NULL;
+        } else if (c != KEY_NULL) {
+            esc_count = 0;
+        }
+
+        //Ctrl+ increase log level
+        if (c == 0x3D && ctrl == 1) {
+            kernel_set_log_level(kernel_get_log_level() + 1);
+            return KEY_NULL;
+        }
+
+        //Ctrl- decrease log level
+        if (c == 0x2D && ctrl == 1) {
+            kernel_set_log_level(kernel_get_log_level() - 1);
+            return KEY_NULL;
+        }
+
+        //Alt (0-9) with tty select
+        if ((c >= 0x30 && c <= 0x39) && alt == 1) {
+            tty_select(c);
+            return KEY_NULL;
+        }
     }
     return c;
 }
@@ -99,49 +145,63 @@ unsigned int keyboard_decode(unsigned int c) {
 
         case KEY_CTRL_L:                //Left Ctrl PR
             ctrl = !ctrl;
-            return KEY_CTRL_L;
+            break;
+            //return KEY_CTRL_L;
         case KEY_CTRL_L | RELEASED:     //Left Ctrl RL
             ctrl = !ctrl;
-            return KEY_CTRL_L | RELEASED;
+            break;
+            //return KEY_CTRL_L | RELEASED;
         case KEY_CTRL_R:                //Right Ctrl PR
             ctrl = !ctrl;
-            return KEY_CTRL_R;
+            break;
+            //return KEY_CTRL_R;
         case KEY_CTRL_R | RELEASED:     //Right Ctrl RL
             ctrl = !ctrl;
-            return KEY_CTRL_R | RELEASED;
+            break;
+            //return KEY_CTRL_R | RELEASED;
 
         case KEY_ALT_L:                 //Left ALT PR
             alt = !alt;
-            return KEY_ALT_L;
+            break;
+            //return KEY_ALT_L;
         case KEY_ALT_L | RELEASED:      //Left ALT RL
             alt = !alt;
-            return KEY_ALT_L | RELEASED;
+            break;
+            //return KEY_ALT_L | RELEASED;
         case KEY_ALT_R:                 //Right ALT PR
             alt = !alt;
-            return KEY_ALT_R;
+            break;
+            //return KEY_ALT_R;
         case KEY_ALT_R | RELEASED:      //Right ALT RL
             alt = !alt;
-            return KEY_ALT_R | RELEASED;
+            break;
+            //return KEY_ALT_R | RELEASED;
 
         case KEY_SHIFT_L:               //Left Shift PR
             shift = !shift;
-            return KEY_SHIFT_L;
+            break;
+            //return KEY_SHIFT_L;
         case KEY_SHIFT_L | RELEASED:    //Left Shift RL
             shift = !shift;
-            return KEY_SHIFT_L | RELEASED;
+            break;
+            //return KEY_SHIFT_L | RELEASED;
         case KEY_SHIFT_R:               //Right Shift PR
             shift = !shift;
-            return KEY_SHIFT_R;
+            break;
+            //return KEY_SHIFT_R;
         case KEY_SHIFT_R | RELEASED:    //Right Shift RL
             shift = !shift;
-            return KEY_SHIFT_R | RELEASED;
+            break;
+            //return KEY_SHIFT_R | RELEASED;
 
         case KEY_CAPS:                  //Caps Lock
             caps = !caps;
-            return KEY_CAPS;
+            break;
+            //return KEY_CAPS;
         case KEY_NUMLOCK:               //Num Lock
             numlock = !numlock;
-            return KEY_NUMLOCK;
+            break;
+            //return KEY_NUMLOCK;
 
         case 0x01:              //Escape
             return KEY_ESCAPE;
@@ -434,5 +494,19 @@ unsigned int keyboard_decode(unsigned int c) {
             return KEY_DELETE;
 
     }
+    /**
+    if (c == KEY_ESCAPE) {
+        esc_count++;
+
+        if (esc_count == 3) {
+            kernel_exit();
+        }
+
+        return KEY_NULL;
+    } else if (c != KEY_NULL) {
+        esc_count = 0;
+    }
+    **/
+
     return KEY_NULL;
 }

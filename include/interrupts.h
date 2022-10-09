@@ -69,7 +69,6 @@ int pic_irq_enabled(int irq);
  */
 void pic_irq_dismiss(int irq);
 
-
 __BEGIN_DECLS
 
 extern void isr_entry_timer();
