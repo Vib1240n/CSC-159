@@ -25,6 +25,9 @@ int vga_color_fg = VGA_COLOR_LIGHT_GREY;
 // VGA text mode cursor status
 int vga_cursor = 0;
 
+// VGA setting for allowing scrolling, disabled by default
+int vga_scrollable = 0;
+
 /**
  * Initializes the VGA driver and configuration
  *  - Defaults variables
@@ -32,6 +35,9 @@ int vga_cursor = 0;
  */
 void vga_init(void) {
     kernel_log_info("Initializing VGA driver");
+
+    vga_cursor = 0;
+    vga_scrollable = 0;
     
     if (vga_cursor) {
         // Enable the cursor
@@ -277,19 +283,23 @@ void vga_putc(char c) {
     else if(c == 0x0A){
         vga_pos_x = 0;
         vga_pos_y += 1;
-        if(vga_pos_y > VGA_HEIGHT-2){
-            for(int i=0; i< VGA_HEIGHT-1; i++){
-                for(int j=0; j< VGA_WIDTH; j++){
-                    *(unsigned short *)(vga_base + i * 80 + j)= *(unsigned short*)(vga_base + (i+1) * 80 + j);
-                }
-            }
-            vga_pos_y = VGA_HEIGHT-1;
-            for(int h=0; h< VGA_WIDTH-1; h++){
-                *(unsigned short *)(vga_base + vga_pos_y * 80 + h) = (unsigned short )VGA_CHAR(vga_color_bg, vga_color_fg, 0x00);
-            }
-                    
 
+        if(vga_scrollable){
+            if(vga_pos_y > VGA_HEIGHT-2){
+                for(int i=0; i< VGA_HEIGHT-1; i++){
+                    for(int j=0; j< VGA_WIDTH; j++){
+                        *(unsigned short *)(vga_base + i * 80 + j)= *(unsigned short*)(vga_base + (i+1) * 80 + j);
+                    }
+                }
+                vga_pos_y = VGA_HEIGHT-1;
+                for(int h=0; h< VGA_WIDTH-1; h++){
+                    *(unsigned short *)(vga_base + vga_pos_y * 80 + h) = (unsigned short )VGA_CHAR(vga_color_bg, vga_color_fg, 0x00);
+                }
+                        
+
+            }  
         }
+        
     }
     else{ 
         *(unsigned short *)(vga_base + vga_pos_y * 80 + vga_pos_x) = (unsigned short)VGA_CHAR(vga_color_bg, vga_color_fg, c);
