@@ -25,12 +25,11 @@ struct tty_t *active_tty;
  */
 void tty_select(int n) {
     // Set the active tty to point to the entry in the tty table
-    // if a new tty is selected, the tty should trigger a refresh
-    if(active_tty->id != n) {
-        active_tty = &tty_table[n];
-        active_tty->refresh = 1;
-    }
     active_tty = &tty_table[n];
+    // if a new tty is selected, the tty should trigger a refresh
+    if(active_tty->refresh != 0){
+        tty_refresh();
+    }
 }
 
 /**
