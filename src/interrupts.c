@@ -193,7 +193,7 @@ int pic_irq_enabled(int irq) {
 void pic_irq_dismiss(int irq) {
     // Send EOI to the secondary PIC, if needed
     if (irq >= 0x28 && irq <= 0x2F) {
-        outportb(PIC2_CMD, PIC_EOI);;
+        outportb(PIC2_CMD, PIC_EOI);
     }
     // Send EOI to the primary PIC, if needed
     outportb(PIC1_CMD, PIC_EOI);
