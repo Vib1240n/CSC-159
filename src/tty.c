@@ -19,7 +19,7 @@ struct tty_t tty_table[TTY_MAX];
 // Current Active TTY
 struct tty_t *active_tty;
 
-void tty_refersh(void);
+void tty_refresh(void);
 
 /**
  * Sets the active TTY to the selected TTY number
@@ -30,7 +30,8 @@ void tty_select(int n) {
     active_tty = &tty_table[n];
     // if a new tty is selected, the tty should trigger a refresh
     if(active_tty->refresh != 0){
-        // tty_refresh();
+        //TODO: control refresh since over refresh to causing lag
+        tty_refresh();
     }
 }
 
@@ -70,16 +71,62 @@ void tty_update(char c) {
     if (!active_tty) {
         return;
     }
-    unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
+    unsigned int buf_pos = (active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK));
     // Since this is a virtual wrapper around the VGA display, treat each
     // input character as you would for the VGA output
     //   Adjust the x/y positions as necessary
     //   Handle scrolling at the bottom
 
+    printf("\nCurrent char pressed was: %d", c);
+
+    // Handling backspace
+    if(c == 0x08){
+        c = 0x00; 
+        active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+        active_tty->pos_x -= 1;
+
+        
+        if(active_tty->pos_x < 0 && active_tty->pos_y > 0){
+            active_tty->pos_x = VGA_WIDTH - 1;
+            active_tty->pos_y -= 1;
+        }
+        else if(active_tty->pos_x < 0 && active_tty->pos_y < 0){
+            active_tty->pos_x = 0;
+            active_tty->pos_y = 0;
+        }
+    }
+    // For Tab
+    else if(c == 0x09){
+        c = 0x20; 
+        for(int j=0; j<4; j++){
+            active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+            active_tty->pos_x += 
+            if(active_tty->pos_x < 0 && active_tty->pos_y > 0){
+                active_tty->pos_x = VGA_WIDTH - 1;
+                active_tty->pos_y -= 1;
+            }
+            else if(active_tty->pos_x < 0 && active_tty->pos_y < 0){
+                active_tty->pos_x = 0;
+                active_tty->pos_y = 0;
+            }
+       
+    }
+    // For Carriage Return
+    else if(c == 0x0D){
+        active_tty->pos_x = 0;
+    }
+    // For New Line
+    else if(c == 0x0A){
+         active_tty->pos_x = 0;
+         active_tty->pos_y += 1;
+    }
+    else{ 
+        active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+        active_tty->pos_x += 1;
+    }
     
 
-    active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
-    active_tty->pos_x += 1;
+    
 
 
     if(active_tty->pos_x > TTY_WIDTH -1){
