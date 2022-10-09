@@ -67,7 +67,22 @@ void tty_update(char c) {
     // input character as you would for the VGA output
     //   Adjust the x/y positions as necessary
     //   Handle scrolling at the bottom
+
+    
+
     active_tty->buf[buf_id] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
+    active_tty->pos_x += 1;
+
+
+    if(active_tty->pos_x > TTY_WIDTH -1){
+        active_tty->pos_x = 0;
+        active_tty->pos_y += 1;
+    }
+
+    active_tty->refresh = 1;
+    tty_refresh();
+
+
 
     // Instead of writing to the VGA display directly, you will write
     // to the tty buffer.
