@@ -47,8 +47,6 @@ queue_t timer_allocator;
 int timer_callback_register(void (*func_ptr)(), int interval, int repeat) {
     //int timer_id = -1;
 
-    
-
     if (!func_ptr) {
         kernel_log_error("timer: invalid function pointer");
         return -1;
@@ -60,10 +58,9 @@ int timer_callback_register(void (*func_ptr)(), int interval, int repeat) {
         kernel_log_error("timer: unable to allocate a timer");
         return -1;
     }
-    
+
     timer_t *timer;
     timer = &timers[timer_id];
-    
 
     // Set the callback function for the timer
     timer->callback = func_ptr;
@@ -126,11 +123,12 @@ void timer_irq_handler(void) {
     for(int i = 0; i< TIMERS_MAX; i++){
         timer_t *timer;
         timer = &timers[i];
-        
+
         // If we have a valid callback, check if it needs to be called
         if(timer->callback) {
             // If the timer interval is hit, run the callback function
-            if(timer->interval >= timer_ticks){
+            if(timer_ticks % timer->interval == 0){
+            //if(timer->interval >= timer_ticks){
                 timer->callback();
             }
             // If the timer repeat is greater than 0, decrement
@@ -144,11 +142,7 @@ void timer_irq_handler(void) {
             // If the timer repeat is less than 0, do nothing
             if(timer->repeat < 0) {}
         }
-            
     }
-
-    
-        
 }
 
 /**
@@ -161,9 +155,7 @@ void timer_init(void) {
     timer_ticks = 0;
 
     // Initialize the timers data structures
-
     timer_t *timer;
-
 
     for(int i=0; i<TIMERS_MAX; i++){
         timer = &timers[i];
