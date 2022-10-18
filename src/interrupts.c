@@ -121,20 +121,30 @@ void interrupts_irq_register(int irq, void (*entry)(), void (*handler)()) {
  * @note IRQs > 0xf will be remapped
  */
 void pic_irq_enable(int irq) {
-    // Determine the PIC to be used for the given IRQ number
-    // Read the current mask
-    // Clear the associated bit in the mask to enable the IRQ
-    // Write the mask out to the PIC
+    int port = PIC1_DATA;
     int mask;
-    if (irq >= 0x20 && irq <= 0x27) { // If PIC1 is used
-        mask = bit_clear(inportb(PIC1_DATA), irq);
-        outportb(PIC1_DATA, mask);
+
+    // Isolate only the first nibble; handles remapping
+    irq &= 0xf;
+
+    // Select the secondary PIC if the IRQ is associated with it
+    if (irq >= 0x8) {
+        port = PIC2_DATA;
+        irq -= 0x8;
     }
-    if (irq >= 0x28 && irq <= 0x2F) { // If PIC2 is used
-        outportb(PIC1_DATA, 0xFB);
-        mask = bit_clear(inportb(PIC2_DATA), irq - 8);
-        outportb(PIC2_DATA, mask);
-    }
+
+    // Read the current mask
+    mask = inportb(port);
+
+    // Set the IRQ
+    mask &= ~(1 << irq);
+
+    outportb(port, mask);
+
+    // Write the mask out to the PIC
+    outportb(port, mask);
+
+    kernel_log_trace("interrupts: Enabled IRQ %d (0x%02x) via PIC port=0x%02x, mask=0x%02x", irq, irq, port, mask);
 }
 
 /**
@@ -143,20 +153,29 @@ void pic_irq_enable(int irq) {
  * @param irq - IRQ that should be disabled
  */
 void pic_irq_disable(int irq) {
-    // Determine the PIC to be used for the given IRQ number
-    // Read the current mask
-    // Set the associated bit in the mask to disable the IRQ
-    // Write the mask back to the PIC
+    int port = PIC1_DATA;
     int mask;
-    if (irq >= 0x20 && irq <= 0x27) { // If PIC1 is used
-        mask = bit_toggle(inportb(PIC1_DATA), irq);
-        outportb(PIC1_DATA, mask);
+
+    // We only care about bits 0-7, this allows
+    // us to handle remapped IRQs
+    irq &= 0xf;
+
+    // Determine the PIC to be used and adjust the irq number
+    if (irq >= 0x8) {
+        port = PIC2_DATA;
+        irq -= 0x8;
     }
-    if (irq >= 0x28 && irq <= 0x2F) { // If PIC2 is used
-        outportb(PIC1_DATA, 0xFF);
-        mask = bit_toggle(inportb(PIC2_DATA), irq - 8);
-        outportb(PIC2_DATA, mask);
-    }
+
+    // Read the current mask
+    mask = inportb(port);
+
+    // Set the bit in the mask to disable the IRQ
+    mask = 0xff & (mask ^ (1 << irq));
+
+    // Write the mask back to the PIC
+    outportb(port, mask);
+
+    kernel_log_trace("interrupts: Disabled IRQ %d (0x%02x) via PIC port=0x%02x, mask=0x%02x", irq, irq, port, mask);
 }
 
 /**
@@ -165,22 +184,24 @@ void pic_irq_disable(int irq) {
  * @param irq - IRQ to check
  * @return - 1 if enabled, 0 if disabled
  */
-int pic_irq_enabled(int irq) {
-    // Determine the PIC to be used and adjust the irq number
-    // Read the current mask from the data port
-    // check the associated bit and return if the IRQ is enabled
+int pic_irq_enabled(int irq) {    
+    int port = PIC1_DATA;
     int mask;
-    if (irq >= 0x20 && irq <= 0x27) { // If PIC1 is used
-        mask = inportb(PIC1_DATA);
-        if (mask == bit_toggle(0xFF, irq))
-            return 1;
+
+    // We only care about bits 0-7, this allows
+    // us to handle remapped IRQs
+    irq &= 0xf;
+
+    // Determine the PIC to be used and adjust the irq number
+    if (irq >= 0x8) {
+        port = PIC2_DATA;
+        irq -= 0x8;
     }
-    if (irq >= 0x28 && irq <= 0x2F) { // If PIC2 is used
-        mask = inportb(PIC2_DATA);
-        if (mask == bit_toggle(0xFF, irq - 8) && inportb(PIC1_DATA) == 0xFB)
-            return 1;
-    }
-    return 0;
+
+    // Read the current mask
+    mask = inportb(port);
+
+    return (mask & (1 << irq)) ? 0 : 1;
 }
 
 /**
@@ -191,11 +212,16 @@ int pic_irq_enabled(int irq) {
  * @param irq - IRQ to be dismissed
  */
 void pic_irq_dismiss(int irq) {
-    // Send EOI to the secondary PIC, if needed
-    if (irq >= 0x28 && irq <= 0x2F) {
+    // We only care about bits 0-7, this allows
+    // us to handle remapped IRQs
+    irq &= 0xf;
+
+    if (irq >= 0x8) {
+        // Send EOI to the secondary PIC
         outportb(PIC2_CMD, PIC_EOI);
     }
-    // Send EOI to the primary PIC, if needed
+
+    // Send EOI to the primary PIC
     outportb(PIC1_CMD, PIC_EOI);
 }
 

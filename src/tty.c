@@ -19,20 +19,31 @@ struct tty_t tty_table[TTY_MAX];
 // Current Active TTY
 struct tty_t *active_tty;
 
-void tty_refresh(void);
-
 /**
  * Sets the active TTY to the selected TTY number
  * @param tty - TTY number
  */
 void tty_select(int n) {
-    // Set the active tty to point to the entry in the tty table
-    active_tty = &tty_table[n];
-    // if a new tty is selected, the tty should trigger a refresh
-    if(active_tty->refresh != 0){
-        //TODO: control refresh since over refresh to causing lag
-        tty_refresh();
+    if (n < 0 || n >= TTY_MAX) {
+        kernel_panic("Invalid TTY %d", n);
     }
+
+    active_tty = &tty_table[n];
+    kernel_log_info("tty[%d]: selected", n);
+
+    active_tty->refresh = 1;
+}
+
+/**
+ * Returns the active TTY identifier
+ * @return TTY id or -1 on error
+ */
+int tty_get_active(void) {
+    if (!active_tty) {
+        return -1;
+    }
+
+    return active_tty->id;
 }
 
 /**
@@ -40,7 +51,7 @@ void tty_select(int n) {
  */
 void tty_refresh(void) {
 
-    unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
+    //unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
     
     if (!active_tty) {
         kernel_panic("No TTY is selected!");
@@ -48,20 +59,24 @@ void tty_refresh(void) {
     }
 
 
-    if(active_tty->refresh == 1) {
+    if (active_tty->refresh) {
+        kernel_log_debug("tty[%d]: refreshing", active_tty->id);
 
+        int x = 0;
+        int y = 0;
 
-        vga_putc_at(active_tty->pos_x, active_tty->pos_y, active_tty->color_bg, active_tty->color_fg, active_tty->buf[buf_pos]);
+        for (int i = 0; i < TTY_WIDTH * TTY_HEIGHT; i++) {
+            if (x >= VGA_WIDTH) {
+                x = 0;
+                y++;
+            }
 
+            vga_putc_at(x++, y, active_tty->color_bg, active_tty->color_fg, active_tty->buf[active_tty->pos_scroll*TTY_WIDTH + i]);
+        }
 
+        // The screen has been refreshed, so clea the refresh flag
         active_tty->refresh = 0;
     }
-
-    // If the TTY needs to be refreshed, copy the tty buffer
-    // to the VGA output.
-    // ** hint: use vga_putc_at() since you are setting specific characters
-    //          at specific locations
-    // Reset the tty's refresh flag so we don't refresh unnecessarily
 }
 
 /**
@@ -71,80 +86,61 @@ void tty_update(char c) {
     if (!active_tty) {
         return;
     }
-    unsigned int buf_pos = (active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK));
-    // Since this is a virtual wrapper around the VGA display, treat each
-    // input character as you would for the VGA output
-    //   Adjust the x/y positions as necessary
-    //   Handle scrolling at the bottom
+
+    struct tty_t *tty = active_tty;
 
     printf("\nCurrent char pressed was: %d", c);
+    //    kernel_log_debug("tty[%d]: input char=%c", tty->id, c);
+    //    kernel_log_debug("  before scroll=%d, x=%d, y=%d", tty->pos_scroll, tty->pos_x, tty->pos_y);
 
-    // Handling backspace
-    if(c == 0x08){
-        c = 0x00; 
-        active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
-        active_tty->pos_x -= 1;
+    switch (c) {
+        case '\t':
+            tty->pos_x += 4 - tty->pos_x % 4;
+            break;
 
-        
-        if(active_tty->pos_x < 0 && active_tty->pos_y > 0){
-            active_tty->pos_x = VGA_WIDTH - 1;
-            active_tty->pos_y -= 1;
-        }
-        else if(active_tty->pos_x < 0 && active_tty->pos_y < 0){
-            active_tty->pos_x = 0;
-            active_tty->pos_y = 0;
-        }
-    }
-    // For Tab
-    else if(c == 0x09){
-        c = 0x20; 
-        for(int j=0; j<4; j++){
-            active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
-            active_tty->pos_x += 1;
-            if(active_tty->pos_x < 0 && active_tty->pos_y > 0){
-                active_tty->pos_x = VGA_WIDTH - 1;
-                active_tty->pos_y -= 1;
+        case '\b':
+            if (tty->pos_x != 0) {
+                tty->pos_x--;
+            } else if (tty->pos_y != 0) {
+                tty->pos_y--;
+                tty->pos_x = TTY_WIDTH - 1;
             }
-            else if(active_tty->pos_x < 0 && active_tty->pos_y < 0){
-                active_tty->pos_x = 0;
-                active_tty->pos_y = 0;
+            break;
+
+        case '\r':
+            tty->pos_x = 0;
+            break;
+
+        case '\n':
+            tty->pos_y++;
+            tty->pos_x = 0;
+            break;
+
+        default:
+            tty->buf[(tty->pos_scroll * TTY_WIDTH) + (tty->pos_x + tty->pos_y * TTY_WIDTH)] = c;
+            tty->pos_x++;
+            break;
+    }
+
+    if (tty->pos_y >= TTY_HEIGHT) {
+        int x;
+        int y;
+
+        for (x = 0; x < TTY_WIDTH; x++) {
+            for (y = 1; y < TTY_HEIGHT; y++) {
+                tty->buf[TTY_WIDTH * (y - 1) + x] = tty->buf[TTY_WIDTH * y + x];
             }
-       
         }
-    }
-    // For Carriage Return
-    else if(c == 0x0D){
-        active_tty->pos_x = 0;
-    }
-    // For New Line
-    else if(c == 0x0A){
-         active_tty->pos_x = 0;
-         active_tty->pos_y += 1;
-    }
-    else{ 
-        active_tty->buf[buf_pos] = (unsigned short)VGA_CHAR(active_tty->color_bg, active_tty->color_fg, c);
-        active_tty->pos_x += 1;
-    }
-    
 
-    
+        for (x = 0; x < TTY_WIDTH; x++) {
+            tty->buf[TTY_WIDTH * (y - 1) + x] = ' ';
+        }
 
-
-    if(active_tty->pos_x > TTY_WIDTH -1){
-        active_tty->pos_x = 0;
-        active_tty->pos_y += 1;
+        tty->pos_y = TTY_HEIGHT - 1;
     }
 
-    active_tty->refresh = 1;
-    tty_refresh();
-
-
-
-    // Instead of writing to the VGA display directly, you will write
-    // to the tty buffer.
-    //
-    // If the screen should be updated, the refresh flag should be set
-    // to trigger the the VGA update via the tty_refresh callback
+//    kernel_log_debug("  after: scroll=%d, x=%d, y=%d", tty->pos_scroll, tty->pos_x, tty->pos_y);
+    tty->refresh = 1;
 }
 
 /**
@@ -156,22 +152,19 @@ void tty_init(void) {
     kernel_log_info("tty: Initializing TTY driver");
 
     // Initialize the tty_table
+    memset(tty_table, 0, sizeof(tty_table));
+
     for(int i = 0; i< TTY_MAX; i++){
-        tty_table[i].id = 0;
-        tty_table[i].pos_x = 0;
-        tty_table[i].pos_y = 0;
-        tty_table[i].pos_scroll = 0;
+        tty_table[i].id=i;
         tty_table[i].color_bg = VGA_COLOR_BLACK;
-        tty_table[i].color_fg = VGA_COLOR_WHITE;
-        tty_table[i].refresh = 0;
-        tty_table[i].buf[i] = 0;
+        tty_table[i].color_fg = VGA_COLOR_LIGHT_GREY;
     }
     
 
     // Select tty 0 to start with
     tty_select(0);
 
-    // Register a timer callback to update the screen on a regular interval
-    timer_callback_register(&tty_refresh, 100, -1);
+    // Register a timer callback to update the screen on a regular interval  (50 times per second right now)
+    timer_callback_register(&tty_refresh, 2, -1);
 }
 

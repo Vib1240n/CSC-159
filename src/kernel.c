@@ -11,6 +11,7 @@
 #include <spede/string.h>
 
 #include "kernel.h"
+#include "interrupts.h"
 
 #ifndef KERNEL_LOG_LEVEL_DEFAULT
 #define KERNEL_LOG_LEVEL_DEFAULT KERNEL_LOG_LEVEL_INFO
@@ -180,6 +181,16 @@ void kernel_panic(char *msg, ...) {
     breakpoint();
     exit(1);
 }
+
+void kernel_context_enter(trapframe_t *trapframe) {
+
+    // Handle the interrupt that occured
+    interrupts_irq_handler(trapframe->interrupt);
+    // Restore the process' context
+    kernel_context_exit(trapframe);
+
+} 
+
 
 int kernel_get_log_level (void) {
     return kernel_log_level;
