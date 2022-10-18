@@ -1,3 +1,4 @@
+#include <spede/flames.h>
 #include <spede/stdio.h>
 #include <spede/machine/io.h>
 
@@ -5,6 +6,7 @@
 #include "keyboard.h"
 #include "interrupts.h"
 #include "vga.h"
+#include "kproc.h"
 #include "tty.h"
 
 // Keyboard data port
@@ -12,6 +14,13 @@
 
 // Keyboard status port
 #define KBD_PORT_STAT           0x64
+
+// Keyboard status bits (CTRL, ALT, SHIFT, CAPS, NUMLOCK)
+#define KEY_STATUS_CTRL         0x01
+#define KEY_STATUS_ALT          0x02
+#define KEY_STATUS_SHIFT        0x04
+#define KEY_STATUS_CAPS         0x08
+#define KEY_STATUS_NUMLOCK      0x10
 
 // Keyboard scancode definitions
 #define KEY_CTRL_L              0x1D
@@ -26,20 +35,212 @@
 #define KEY_CAPS                0x3A
 #define KEY_NUMLOCK             0x45
 
-#define RELEASED                0x80
+/* #define RELEASED                0x80 */
 
-int ctrl;
-int alt;
-int shift;
-int caps;
-int numlock;
+// Macros for handling keyboard presses or releases
+#define KEY_PRESSED(c)          ((c & 0x80) == 0)
+#define KEY_RELEASED(c)         ((c & 0x80) != 0)
 
-int esc_count = 0;
+// Macros for testing key status combinations
+#define KEY_STATUS_ALL(stat, test) ((stat & test) == test)
+#define KEY_STATUS_ANY(stat, test) ((stat & test) != 0)
 
+// If this sequence of keys is pressed along with another character,
+// the kernel debug command function will be called
+#define KEY_KERNEL_DEBUG        (KEY_STATUS_CTRL)
+
+// Bit-map to keep track of CTRL, ALT, SHIFT, CAPS, NUMLOCK
+//
+// When any of these keys are pressed, the appropriate bit
+// should be set. When released, the bit should be cleared.
+//   CTRL, ALT, SHIFT
+//
+// When any of these keys are pressed and then released, the
+// appropriate bits should be toggled:
+//   CAPS, NUMLOCK
+static unsigned int kbd_status = 0x0;
+static unsigned int esc_status = 0;
+
+// Primary keymap
+static const char keyboard_map_primary[] = {
+    KEY_NULL,           /* 0x00 - Null */
+    KEY_ESCAPE,         /* 0x01 - Escape  */
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
+    '\b',               /* 0x0e - Backspace */
+    '\t',               /* 0x0f - Tab */
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']',
+    '\n',               /* 0x1e - Enter */
+    KEY_NULL,           /* 0x1d - Left Ctrl */
+    'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
+    KEY_NULL,           /* 0x2a - Left Shift */
+    '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',
+    KEY_NULL,           /* 0x36 - Right Shift */
+    KEY_NULL,           /* 0x37 - Print Screen */
+    KEY_NULL,           /* 0x38 - Left Alt */
+    ' ',                /* 0x39 - Spacebar */
+    KEY_NULL,           /* 0x3a - CapsLock */
+    KEY_F1,             /* 0x3b - F1 */
+    KEY_F2,             /* 0x3c - F2 */
+    KEY_F3,             /* 0x3d - F3 */
+    KEY_F4,             /* 0x3e - F4 */
+    KEY_F5,             /* 0x3f - F5 */
+    KEY_F6,             /* 0x40 - F6 */
+    KEY_F7,             /* 0x41 - F7 */
+    KEY_F8,             /* 0x42 - F8 */
+    KEY_F9,             /* 0x43 - F9 */
+    KEY_F10,            /* 0x44 - F10 */
+    KEY_NULL,           /* 0x45 - NumLock */
+    KEY_NULL,           /* 0x46 - ScrollLock */
+    '7',                /* 0x47 - Numpad 7 */
+    KEY_UP, //'8',                /* 0x48 - Numpad 8 */
+    '9',                /* 0x49 - Numpad 9 */
+    '-',                /* 0x4a - Numpad Minus */
+    KEY_LEFT, //'4',                /* 0x4b - Numpad 4 */
+    '5',                /* 0x4c - Numpad 5 */
+    KEY_RIGHT, //'6',                /* 0x4d - Numpad 6 */
+    '+',                /* 0x4e - Numpad Plus */
+    '1',                /* 0x4f - Numpad 1 */
+    KEY_DOWN, //'2',                /* 0x50 - Numpad 2 */
+    '3',                /* 0x51 - Numpad 3 */
+    KEY_INSERT,         /* 0x52 - Insert */
+    KEY_DELETE,         /* 0x53 - Delete */
+    KEY_NULL,           /* 0x54 */
+    KEY_NULL,           /* 0x55 */
+    KEY_NULL,           /* 0x56 */
+    KEY_F11,            /* 0x57 - F11 */
+    KEY_F12,            /* 0x58 - F12 */
+    KEY_NULL,           /* 0x59 */
+    KEY_NULL,           /* 0x5a */
+    KEY_NULL,           /* 0x5b */
+    KEY_NULL,           /* 0x5c */
+    KEY_NULL,           /* 0x5d */
+    KEY_NULL,           /* 0x5e */
+    KEY_NULL,           /* 0x5f */
+    KEY_NULL,           /* 0x60 */
+    KEY_NULL,           /* 0x61 */
+    KEY_NULL,           /* 0x62 */
+    KEY_NULL,           /* 0x63 */
+    KEY_NULL,           /* 0x64 */
+    KEY_NULL,           /* 0x65 */
+    KEY_NULL,           /* 0x66 */
+    KEY_NULL,           /* 0x67 */
+    KEY_NULL,           /* 0x68 */
+    KEY_NULL,           /* 0x69 */
+    KEY_NULL,           /* 0x6a */
+    KEY_NULL,           /* 0x6b */
+    KEY_NULL,           /* 0x6c */
+    KEY_NULL,           /* 0x6d */
+    KEY_NULL,           /* 0x6e */
+    KEY_NULL,           /* 0x6f */
+    KEY_NULL,           /* 0x70 */
+    KEY_NULL,           /* 0x71 */
+    KEY_NULL,           /* 0x72 */
+    KEY_NULL,           /* 0x73 */
+    KEY_NULL,           /* 0x74 */
+    KEY_NULL,           /* 0x75 */
+    KEY_NULL,           /* 0x76 */
+    KEY_NULL,           /* 0x77 */
+    KEY_NULL,           /* 0x78 */
+    KEY_NULL,           /* 0x79 */
+    KEY_NULL,           /* 0x7a */
+    KEY_NULL,           /* 0x7b */
+    KEY_NULL,           /* 0x7c */
+    KEY_NULL,           /* 0x7d */
+    KEY_NULL,           /* 0x7e */
+    KEY_NULL            /* 0x7f */
+};
+
+// Secondary keymap (when CAPS ^ SHIFT is enabled)
+static const char keyboard_map_secondary[] = {
+    KEY_NULL,           /* 0x00 - Undefined */
+    KEY_ESCAPE,         /* 0x01 - Escape */
+    '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
+    '\b',               /* 0x0e - Backspace */
+    '\t',               /* 0x0f - Tab */
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+    '\n',               /* 0x1e - Enter */
+    KEY_NULL,           /* 0x1d - Left Ctrl */
+    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
+    KEY_NULL,           /* 0x2a - Left Shift */
+    '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?',
+    KEY_NULL,           /* 0x36 - Right Shift */
+    KEY_NULL,           /* 0x37 - Print Screen */
+    KEY_NULL,           /* 0x38 - Left Alt */
+    ' ',
+    KEY_NULL,           /* 0x3a - CapsLock */
+    KEY_F1,             /* 0x3b - F1 */
+    KEY_F2,             /* 0x3c - F2 */
+    KEY_F3,             /* 0x3d - F3 */
+    KEY_F4,             /* 0x3e - F4 */
+    KEY_F5,             /* 0x3f - F5 */
+    KEY_F6,             /* 0x40 - F6 */
+    KEY_F7,             /* 0x41 - F7 */
+    KEY_F8,             /* 0x42 - F8 */
+    KEY_F9,             /* 0x43 - F9 */
+    KEY_F10,            /* 0x44 - F10 */
+    KEY_NULL,           /* 0x45 - NumLock */
+    KEY_NULL,           /* 0x46 - ScrollLock */
+    KEY_HOME,           /* 0x47 - Home */
+    KEY_UP,             /* 0x48 - Up Arrow */
+    KEY_PAGE_UP,        /* 0x49 - Page Up */
+    '-',                /* 0x4a - Numpad minus */
+    KEY_LEFT,           /* 0x4b - Left Arrow */
+    KEY_NULL,           /* 0x4c - Numpad Center */
+    KEY_RIGHT,          /* 0x4d - Right Arrow */
+    '+',                /* 0x4e - Numpad plus */
+    KEY_END,            /* 0x4f - Page End */
+    KEY_DOWN,           /* 0x50 - Down Arrow */
+    KEY_PAGE_DOWN,      /* 0x51 - Page Down */
+    KEY_INSERT,         /* 0x52 - Insert */
+    KEY_DELETE,         /* 0x53 - Delete */
+    KEY_NULL,           /* 0x54 */
+    KEY_NULL,           /* 0x55 */
+    KEY_NULL,           /* 0x56 */
+    KEY_F11,            /* 0x57 - F11 */
+    KEY_F12,            /* 0x58 - F12 */
+    KEY_NULL,           /* 0x59 */
+    KEY_NULL,           /* 0x5a */
+    KEY_NULL,           /* 0x5b */
+    KEY_NULL,           /* 0x5c */
+    KEY_NULL,           /* 0x5d */
+    KEY_NULL,           /* 0x5e */
+    KEY_NULL,           /* 0x5f */
+    KEY_NULL,           /* 0x60 */
+    KEY_NULL,           /* 0x61 */
+    KEY_NULL,           /* 0x62 */
+    KEY_NULL,           /* 0x63 */
+    KEY_NULL,           /* 0x64 */
+    KEY_NULL,           /* 0x65 */
+    KEY_NULL,           /* 0x66 */
+    KEY_NULL,           /* 0x67 */
+    KEY_NULL,           /* 0x68 */
+    KEY_NULL,           /* 0x69 */
+    KEY_NULL,           /* 0x6a */
+    KEY_NULL,           /* 0x6b */
+    KEY_NULL,           /* 0x6c */
+    KEY_NULL,           /* 0x6d */
+    KEY_NULL,           /* 0x6e */
+    KEY_NULL,           /* 0x6f */
+    KEY_NULL,           /* 0x70 */
+    KEY_NULL,           /* 0x71 */
+    KEY_NULL,           /* 0x72 */
+    KEY_NULL,           /* 0x73 */
+    KEY_NULL,           /* 0x74 */
+    KEY_NULL,           /* 0x75 */
+    KEY_NULL,           /* 0x76 */
+    KEY_NULL,           /* 0x77 */
+    KEY_NULL,           /* 0x78 */
+    KEY_NULL,           /* 0x79 */
+    KEY_NULL,           /* 0x7a */
+    KEY_NULL,           /* 0x7b */
+    KEY_NULL,           /* 0x7c */
+    KEY_NULL,           /* 0x7d */
+    KEY_NULL,           /* 0x7e */
+    KEY_NULL            /* 0x7f */
+};
 void keyboard_irq_handler(void) {
     unsigned int c = keyboard_poll();
     if (c) {
-        //vga_putc(c);
         tty_update(c);
     }
 }
@@ -49,12 +250,11 @@ void keyboard_irq_handler(void) {
  */
 void keyboard_init() {
     kernel_log_info("Initializing keyboard");
-    ctrl = 0;
-    alt = 0;
-    shift = 0;
-    caps = 0;
-    numlock = 0;
 
+    // No status keys pressed by default
+    kbd_status = 0x0;
+
+    // Register the keyboard ISR
     interrupts_irq_register(IRQ_KEYBOARD, isr_entry_keyboard, keyboard_irq_handler);
 }
 
@@ -64,6 +264,7 @@ void keyboard_init() {
  */
 unsigned int keyboard_scan(void) {
     unsigned int c = inportb(KBD_PORT_DATA);
+    // kernel_log_trace("keyboard: raw data [0x%02x]", c);
     return c;
 }
 
@@ -78,43 +279,13 @@ unsigned int keyboard_scan(void) {
  */
 unsigned int keyboard_poll(void) {
     unsigned int c = KEY_NULL;
-    //unsigned int status = inportb(KBD_PORT_STAT);
-    if ((inportb(KBD_PORT_STAT) & 0x1) == 1) {
+
+    if ((inportb(KBD_PORT_STAT) & 0x1) != 0) {
         c = keyboard_scan();
         c = keyboard_decode(c);
-        //kernel_log_info("Key press [%c] - %u [0x%x]", c, d, d);
-
-        //QUIT WITH ESC THREE TIMEs
-        if (c == KEY_ESCAPE) {
-            esc_count++;
-
-            if (esc_count == 3) {
-                kernel_exit();
-            }
-
-            c = KEY_NULL;
-        } else if (c != KEY_NULL) {
-            esc_count = 0;
-        }
-
-        //Ctrl+ increase log level
-        if (c == 0x3D && ctrl == 1) {
-            kernel_set_log_level(kernel_get_log_level() + 1);
-            return KEY_NULL;
-        }
-
-        //Ctrl- decrease log level
-        if (c == 0x2D && ctrl == 1) {
-            kernel_set_log_level(kernel_get_log_level() - 1);
-            return KEY_NULL;
-        }
-
-        //Alt (0-9) with tty select
-        if ((c >= 0x30 && c <= 0x39) && alt == 1) {
-            tty_select(c);
-            return KEY_NULL;
-        }
+        
     }
+
     return c;
 }
 
@@ -139,374 +310,161 @@ unsigned int keyboard_getc(void) {
  * or ASCII-friendly characters.
  *
  * For any character that cannot be mapped, KEY_NULL should be returned.
+ *
+ * If *all* of the status keys defined in KEY_KERNEL_DEBUG are pressed,
+ * while another character is entered, the kernel_debug_command()
+ * function should be called.
  */
 unsigned int keyboard_decode(unsigned int c) {
-    switch (c) {
+    unsigned int key_pressed = KEY_PRESSED(c);
 
-        case KEY_CTRL_L:                //Left Ctrl PR
-            ctrl = !ctrl;
-            break;
-            //return KEY_CTRL_L;
-        case KEY_CTRL_L | RELEASED:     //Left Ctrl RL
-            ctrl = !ctrl;
-            break;
-            //return KEY_CTRL_L | RELEASED;
-        case KEY_CTRL_R:                //Right Ctrl PR
-            ctrl = !ctrl;
-            break;
-            //return KEY_CTRL_R;
-        case KEY_CTRL_R | RELEASED:     //Right Ctrl RL
-            ctrl = !ctrl;
-            break;
-            //return KEY_CTRL_R | RELEASED;
+    switch (c & ~0x80) {
+        case KEY_CTRL_L:
+        case KEY_CTRL_R:
+            if (key_pressed) {
+                if ((kbd_status & KEY_STATUS_CTRL) == 0) {
+//                    kernel_log_trace("keyboard: CTRL pressed");
+                }
 
-        case KEY_ALT_L:                 //Left ALT PR
-            alt = !alt;
-            break;
-            //return KEY_ALT_L;
-        case KEY_ALT_L | RELEASED:      //Left ALT RL
-            alt = !alt;
-            break;
-            //return KEY_ALT_L | RELEASED;
-        case KEY_ALT_R:                 //Right ALT PR
-            alt = !alt;
-            break;
-            //return KEY_ALT_R;
-        case KEY_ALT_R | RELEASED:      //Right ALT RL
-            alt = !alt;
-            break;
-            //return KEY_ALT_R | RELEASED;
+                kbd_status |= KEY_STATUS_CTRL;
+            } else {
+                if ((kbd_status & KEY_STATUS_CTRL) != 0) {
+//                    kernel_log_trace("keyboard: CTRL released");
+                }
 
-        case KEY_SHIFT_L:               //Left Shift PR
-            shift = !shift;
+                kbd_status &= ~KEY_STATUS_CTRL;
+            }
             break;
-            //return KEY_SHIFT_L;
-        case KEY_SHIFT_L | RELEASED:    //Left Shift RL
-            shift = !shift;
-            break;
-            //return KEY_SHIFT_L | RELEASED;
-        case KEY_SHIFT_R:               //Right Shift PR
-            shift = !shift;
-            break;
-            //return KEY_SHIFT_R;
-        case KEY_SHIFT_R | RELEASED:    //Right Shift RL
-            shift = !shift;
-            break;
-            //return KEY_SHIFT_R | RELEASED;
 
-        case KEY_CAPS:                  //Caps Lock
-            caps = !caps;
-            break;
-            //return KEY_CAPS;
-        case KEY_NUMLOCK:               //Num Lock
-            numlock = !numlock;
-            break;
-            //return KEY_NUMLOCK;
+        case KEY_ALT_L:
+        case KEY_ALT_R:
+            if (key_pressed) {
+                if ((kbd_status & KEY_STATUS_ALT) == 0) {
+//                    kernel_log_trace("keyboard: ALT pressed");
+                }
 
-        case 0x01:              //Escape
-            return KEY_ESCAPE;
-        case 0x02:              //1!
-            if (shift || caps)
-                return 0x21;
-            else
-                return 0x31;
-        case 0x03:              //2@
-            if (shift || caps)
-                return 0x40;
-            else
-                return 0x32;
-        case 0x04:              //3#
-            if (shift || caps)
-                return 0x23;
-            else
-                return 0x33;
-        case 0x05:              //4$
-            if (shift || caps)
-                return 0x24;
-            else
-                return 0x34;
-        case 0x06:              //5%
-            if (shift || caps)
-                return 0x25;
-            else
-                return 0x35;
-        case 0x07:              //6^
-            if (shift || caps)
-                return 0x5E;
-            else
-                return 0x36;
-        case 0x08:              //7&
-            if (shift || caps)
-                return 0x26;
-            else
-                return 0x37;
-        case 0x09:              //8*
-            if (shift || caps)
-                return 0x2A;
-            else
-                return 0x38;
-        case 0x0a:              //9(
-            if (shift || caps)
-                return 0x28;
-            else
-                return 0x39;
-        case 0x0b:              //0)
-            if (shift || caps)
-                return 0x29;
-            else
-                return 0x30;
-        case 0x0c:              //-_
-            if (shift || caps)
-                return 0x5F;
-            else
-                return 0x2D;
-        case 0x0d:              //=+
-            if (shift || caps)
-                return 0x2B;
-            else
-                return 0x3D;
-        case 0x0e:              //Backspace
-            return 0x08;
-        case 0x0f:              //Tab
-            return 0x09;
-        case 0x10:              //Qq
-            if (shift || caps)
-                return 0x51;
-            else
-                return 0x71;
-        case 0x11:              //Ww
-            if (shift || caps)
-                return 0x57;
-            else
-                return 0x77;
-        case 0x12:              //Ee
-            if (shift || caps)
-                return 0x45;
-            else
-                return 0x65;
-        case 0x13:              //Rr
-            if (shift || caps)
-                return 0x52;
-            else
-                return 0x72;
-        case 0x14:              //Tt
-            if (shift || caps)
-                return 0x54;
-            else
-                return 0x74;
-        case 0x15:              //Yy
-            if (shift || caps)
-                return 0x59;
-            else
-                return 0x79;
-        case 0x16:              //Uu
-            if (shift || caps)
-                return 0x55;
-            else
-                return 0x75;
-        case 0x17:              //Ii
-            if (shift || caps)
-                return 0x49;
-            else
-                return 0x69;
-        case 0x18:              //Oo
-            if (shift || caps)
-                return 0x4F;
-            else
-                return 0x6F;
-        case 0x19:              //Pp
-            if (shift || caps)
-                return 0x50;
-            else
-                return 0x70;
-        case 0x1a:              //[{
-            if (shift || caps)
-                return 0x7B;
-            else
-                return 0x5B;
-        case 0x1b:              //]}
-            if (shift || caps)
-                return 0x7D;
-            else
-                return 0x5D;
-        case 0x1c:              //Enter
-           return 0xA;
-        case 0x1e:              //Aa
-            if (shift || caps)
-                return 0x41;
-            else
-                return 0x61;
-        case 0x1f:              //Ss
-            if (shift || caps)
-                return 0x53;
-            else
-                return 0x73;
-        case 0x20:              //Dd
-            if (shift || caps)
-                return 0x44;
-            else
-                return 0x64;
-        case 0x21:              //Ff
-            if (shift || caps)
-                return 0x46;
-            else
-                return 0x66;
-        case 0x22:              //Gg
-            if (shift || caps)
-                return 0x47;
-            else
-                return 0x67;
-        case 0x23:              //Hh
-            if (shift || caps)
-                return 0x48;
-            else
-                return 0x68;
-        case 0x24:              //Jj
-            if (shift || caps)
-                return 0x4A;
-            else
-                return 0x6A;
-        case 0x25:              //Kk
-            if (shift || caps)
-                return 0x4B;
-            else
-                return 0x6B;
-        case 0x26:              //Ll
-            if (shift || caps)
-                return 0x4C;
-            else
-                return 0x6C;
-        case 0x27:              //;:
-            if (shift || caps)
-                return 0x3A;
-            else
-                return 0x3B;
-        case 0x28:              //'"
-            if (shift || caps)
-                return 0x22;
-            else
-                return 0x27;
-        case 0x29:              //`~
-            if (shift || caps)
-                return 0x7E;
-            else
-                return 0x60;
-        case 0x2b:              //\|
-            if (shift || caps)
-                return 0x7C;
-            else
-                return 0x5C;
-        case 0x2c:              //Zz
-            if (shift || caps)
-                return 0x5A;
-            else
-                return 0x7A;
-        case 0x2d:              //Xx
-            if (shift || caps)
-                return 0x58;
-            else
-                return 0x78;
-        case 0x2e:              //Cc
-            if (shift || caps)
-                return 0x43;
-            else
-                return 0x63;
-        case 0x2f:              //Vv
-            if (shift || caps)
-                return 0x56;
-            else
-                return 0x76;
-        case 0x30:              //Bb
-            if (shift || caps)
-                return 0x42;
-            else
-                return 0x62;
-        case 0x31:              //Nn
-            if (shift || caps)
-                return 0x4E;
-            else
-                return 0x6E;
-        case 0x32:              //Mm
-            if (shift || caps)
-                return 0x4D;
-            else
-                return 0x6D;
-        case 0x33:              //,<
-            if (shift || caps)
-                return 0x3C;
-            else
-                return 0x2C;
-        case 0x34:              //.>
-            if (shift || caps)
-                return 0x3E;
-            else
-                return 0x2E;
-        case 0x35:              ///?
-            if (shift || caps)
-                return 0x3F;
-            else
-                return 0x2F;
-        case 0x39:              //Space
-            return 0x20;
-        case 0x3b:              //F1
-            return KEY_F1;
-        case 0x3c:              //F2
-            return KEY_F2;
-        case 0x3d:              //F3
-            return KEY_F3;
-        case 0x3e:              //F4
-            return KEY_F4;
-        case 0x3f:              //F5
-            return KEY_F5;
-        case 0x40:              //F6
-            return KEY_F6;
-        case 0x41:              //F7
-            return KEY_F7;
-        case 0x42:              //F8
-            return KEY_F8;
-        case 0x43:              //F9
-            return KEY_F9;
-        case 0x44:              //F10
-            return KEY_F10;
-        case 0x87:              //F11
-            return KEY_F11;
-        case 0x88:              //F12
-            return KEY_F12;
-        case 0x47:              //Home
-            return KEY_HOME;
-        case 0x48:              //Up
-            return KEY_UP;
-        case 0x49:              //Page Up
-            return KEY_PAGE_UP;
-        case 0x4b:              //Left
-            return KEY_LEFT;
-        case 0x4d:              //Right
-            return KEY_RIGHT;
-        case 0x4f:              //End
-            return KEY_END;
-        case 0x50:              //Down
-            return KEY_DOWN;
-        case 0x51:              //Page Down
-            return KEY_PAGE_DOWN;
-        case 0x52:              //Insert
-            return KEY_INSERT;
-        case 0x53:              //Delete
-            return KEY_DELETE;
+                kbd_status |= KEY_STATUS_ALT;
+            } else {
+                if ((kbd_status & KEY_STATUS_ALT) != 0) {
+//                    kernel_log_trace("keyboard: ALT released");
+                }
 
+                kbd_status &= ~KEY_STATUS_ALT;
+            }
+            break;
+
+        case KEY_SHIFT_L:
+        case KEY_SHIFT_R:
+            if (key_pressed) {
+                if ((kbd_status & KEY_STATUS_SHIFT) == 0) {
+//                    kernel_log_trace("keyboard: SHIFT pressed");
+                }
+
+                kbd_status |= KEY_STATUS_SHIFT;
+            } else {
+                if ((kbd_status & KEY_STATUS_SHIFT) != 0) {
+//                    kernel_log_trace("keyboard: SHIFT released");
+                }
+
+                kbd_status &= ~KEY_STATUS_SHIFT;
+            }
+            break;
+
+        case KEY_CAPS:
+            if (key_pressed) {
+//                kernel_log_trace("keyboard: CAPS pressed");
+                kbd_status ^= KEY_STATUS_CAPS;
+            } else {
+//                kernel_log_trace("keyboard: CAPS released");
+            }
+            break;
+
+        case KEY_NUMLOCK:
+            if (key_pressed) {
+                kbd_status ^= KEY_STATUS_NUMLOCK;
+            }
+            break;
+
+        // Handle all other input
+        default:
+            // Ignore presses, only process releases
+            if (!key_pressed) {
+                break;
+            }
+
+
+            // Choose which map to use based upon the keyboard status
+            if (c >= 0x47 && c <= 0x53) {
+                if ((kbd_status & KEY_STATUS_NUMLOCK) != 0) {
+                    c = keyboard_map_secondary[c];
+                } else {
+                    c = keyboard_map_primary[c];
+                }
+            } else if ((((kbd_status & KEY_STATUS_SHIFT) != 0)
+               ^ ((kbd_status & KEY_STATUS_CAPS)  != 0)) != 0) {
+                c = keyboard_map_secondary[c];
+            } else {
+                c = keyboard_map_primary[c];
+            }
+
+            if (kbd_status & KEY_STATUS_ALT) {
+                if (c >= '0' && c <= '9') {
+                    int n = c - '0';
+                    tty_select(n);
+                    return KEY_NULL;
+                }
+            }
+
+            if (c == KEY_ESCAPE) {
+                esc_status++;
+
+                if (esc_status == 3) {
+                    kernel_exit();
+                }
+
+                return KEY_NULL;
+            } else if (c != KEY_NULL) {
+                esc_status = 0;
+            }
+
+            if (kbd_status & KEY_STATUS_CTRL) {
+                if (c == '+' || c == '=') {
+                    kernel_set_log_level(kernel_get_log_level() + 1);
+                    return KEY_NULL;
+                } else if (c == '-' || c == '_') {
+                    kernel_set_log_level(kernel_get_log_level() - 1);
+                    return KEY_NULL;
+                }
+
+                if (c == 'n' || c == 'N') {
+                    kproc_create(kproc_test, "test", PROC_TYPE_USER);
+                    return KEY_NULL;
+                }
+
+                if (c == 'q' || c == 'Q') {
+                    // TODO: renable 
+                    // kproc_destroy(active_proc);
+                    return KEY_NULL;
+                }
+
+                if (c == 'b' || c == 'B') {
+                    breakpoint();
+                    return KEY_NULL;
+                }
+            }
+
+            if (c) {
+                // For now, print to the host console
+                if (c >= 0x20 && c <= 0x7f) {
+//                    kernel_log_trace("keyboard: character [0x%02x] '%c'", c, c);
+                } else {
+//                    kernel_log_trace("keyboard: character [0x%02x]", c);
+                }
+                return c;
+            }
+
+            break;
     }
-    /**
-    if (c == KEY_ESCAPE) {
-        esc_count++;
-
-        if (esc_count == 3) {
-            kernel_exit();
-        }
-
-        return KEY_NULL;
-    } else if (c != KEY_NULL) {
-        esc_count = 0;
-    }
-    **/
 
     return KEY_NULL;
 }
