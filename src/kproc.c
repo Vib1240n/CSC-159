@@ -156,10 +156,37 @@ void kproc_init(void) {
     kernel_log_info("Initializing process management");
 
     // Initialize all data structures and variables
+
     //   - process table
+    
+    proc_t *table;
+
+    for(int i=0; i<PROC_MAX; i++){
+        table = &proc_table[i];
+        table->start_time = 0;
+        table->run_time = 0;
+        table->cpu_time = 0;
+    }
+
+
+
     //   - process allocator
+    
+    queue_init(&proc_allocator);
+
+    for(int i=0; i<PROC_MAX; i++){
+        queue_in(&proc_allocator, i);
+    }
+    
     //   - process stack
 
+
+    
+
+
     // Create the idle process (kproc_idle) as a kernel process
+
+
+
 }
 
