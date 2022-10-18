@@ -165,6 +165,6 @@ void tty_init(void) {
     tty_select(0);
 
     // Register a timer callback to update the screen on a regular interval  (50 times per second right now)
-    timer_callback_register(&tty_refresh, 2, -1);
+    timer_callback_register(tty_refresh, 2, -1);
 }
 
