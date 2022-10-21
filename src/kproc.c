@@ -39,6 +39,10 @@ proc_t *pid_to_proc(int pid) {
     // Iterate through the process table and return a pointer to the valid entry where the process id matches
     // i.e. if proc_table[8].pid == pid, return pointer to proc_table[8]
     // Ensure that the process control block actually refers to a valid process
+    for (int i = 0; i < PROC_MAX; i++) {
+        if (proc_table[i].pid == pid)
+            return &proc_table[pid];
+    }
     return NULL;
 }
 
@@ -51,6 +55,10 @@ int proc_to_entry(proc_t *proc) {
     // For a given process entry pointer, return the entry/index into the process table
     //  i.e. if proc -> proc_table[3], return 3
     // Ensure that the process control block actually refers to a valid process
+    for (int i = 0; i < PROC_MAX; i++) {
+        if (proc->proc_table[i])
+            return i;
+    }
     return -1;
 }
 
@@ -60,6 +68,7 @@ int proc_to_entry(proc_t *proc) {
 proc_t * entry_to_proc(int entry) {
     // For the given entry number, return a pointer to the process table entry
     // Ensure that the process control block actually refers to a valid process
+    
     return NULL;
 }
 
@@ -118,11 +127,11 @@ int kproc_create(void *proc_ptr, char *proc_name, proc_type_t proc_type) {
  */
 int kproc_destroy(proc_t *proc) {
     // Remove the process from the scheduler
-
+    scheduler_remove(proc);
     // Clear/Reset all process data (process control block, stack, etc) related to the process
-
+    
     // Add the process entry/index value back into the process allocator
-
+    
     return -1;
 }
 
