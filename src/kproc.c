@@ -81,23 +81,35 @@ proc_t * entry_to_proc(int entry) {
 int kproc_create(void *proc_ptr, char *proc_name, proc_type_t proc_type) {
     proc_t *proc = NULL;
 
-    int proc_id = -1;
+    //int proc_id = -1;
 
     // Allocate an entry in the process table via the process allocator
 
+    if (!proc_ptr) {
+        kernel_log_error("kproc: invalid function pointer");
+        return -1;
+    }
 
+    int proc_id = proc_allocator.head;
     if(queue_out(&proc_allocator, &proc_id) != 0){
         kernel_log_error("krpc error not able to allocate process");
         return -1;
     }
+
+    kernel_log_debug("kproc: made it here");
+    
 
     // Initialize the process control block
 
     // Initialize the process stack via proc_stack
     proc->stack = &proc_stack[proc_id][PROC_STACK_SIZE];
 
+    kernel_log_debug("kproc: after init stack made it here");
+
     // Initialize the trapframe pointer at the bottom of the stack
     proc->trapframe = (trapframe_t *)(&proc->stack[PROC_STACK_SIZE - sizeof(trapframe_t)]);
+
+    kernel_log_debug("kproc: after init trapname made it here");
 
     // Set each of the process control block structure members to the initial starting values
     // as each new process is created, increment next_pid
