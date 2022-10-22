@@ -104,6 +104,7 @@ void scheduler_init(void) {
     kernel_log_info("Initializing scheduler");
 
     // Initialize any data structures or variables
+    active_proc->pid = 0;
     // Register the timer callback (scheduler_timer) to run every tick
     timer_callback_register(scheduler_timer, 2, -1);
 }
