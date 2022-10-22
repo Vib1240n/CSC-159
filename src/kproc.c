@@ -101,12 +101,14 @@ int kproc_create(void *proc_ptr, char *proc_name, proc_type_t proc_type) {
 
     // Initialize the process control block
 
+    proc = &proc_table[proc_id];
+
     // Initialize the process stack via proc_stack
-    proc->stack = &proc_stack[proc_id][PROC_STACK_SIZE];
+    proc->stack = proc_stack[proc_id];
 
     kernel_log_debug("kproc: after init stack made it here");
 
-    // Initialize the trapframe pointer at the bottom of the stack
+    // Initialize the trapframe pointer at the bottom of the stackssss
     proc->trapframe = (trapframe_t *)(&proc->stack[PROC_STACK_SIZE - sizeof(trapframe_t)]);
 
     kernel_log_debug("kproc: after init trapname made it here");
@@ -122,6 +124,7 @@ int kproc_create(void *proc_ptr, char *proc_name, proc_type_t proc_type) {
     proc->cpu_time = 0;
     proc->start_time = 0;
     
+    kernel_log_debug("kproc: after init after vars made it here");
 
     // Copy the passed-in name to the name buffer in the process control block
 
@@ -209,14 +212,17 @@ void kproc_init(void) {
 
     //   - process table
     
-    proc_t *table;
+    //proc_t *table;
+
+    memset(proc_table, 0, sizeof(proc_table));
 
     for(int i=0; i<PROC_MAX; i++){
-        table = &proc_table[i];
-        table->start_time = 0;
-        table->run_time = 0;
-        table->cpu_time = 0;
-        table->stack = &proc_stack[i][PROC_STACK_SIZE];
+        //table = &proc_table[i];
+        proc_table[i].start_time = 0;
+        proc_table[i].run_time = 0;
+        proc_table[i].cpu_time = 0;
+        proc_table[i].stack = &proc_stack[i][PROC_STACK_SIZE];
+        //memset(table->stack, 0, sizeof(char));
     }
 
 
@@ -232,6 +238,7 @@ void kproc_init(void) {
     //   - process stack
 
 
+    memset(proc_stack, 0, sizeof(proc_stack));
 
 
 
