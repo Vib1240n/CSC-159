@@ -180,7 +180,7 @@ void kproc_init(void) {
         table->start_time = 0;
         table->run_time = 0;
         table->cpu_time = 0;
-        table->stack = &proc_stack[PROC_MAX][PROC_STACK_SIZE];
+        table->stack = &proc_stack[i][PROC_STACK_SIZE];
     }
 
 
@@ -203,7 +203,7 @@ void kproc_init(void) {
 
     // Create the idle process (kproc_idle) as a kernel process
 
-    
+
     kproc_idle();
 
 
