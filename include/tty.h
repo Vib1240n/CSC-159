@@ -53,6 +53,12 @@ void tty_init(void);
 void tty_select(int tty);
 
 /**
+ * Returns the active TTY id
+ * @return TTY id or -1 on error
+ */
+int tty_get_active(void);
+
+/**
  * Updates the TTY with the given character
  */
 void tty_update(char c);
