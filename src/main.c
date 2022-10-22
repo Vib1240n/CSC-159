@@ -50,6 +50,8 @@ int main(void) {
     // Enable interrupts
     interrupts_enable();
 
+    kproc_init();
+
     // Loop in place forever
     while (1);
 
