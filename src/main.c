@@ -12,6 +12,8 @@
 #include "timer.h"
 #include "tty.h"
 #include "vga.h"
+#include "scheduler.h"
+
 
 #include "test.h"
 
@@ -34,6 +36,9 @@ int main(void) {
     // Initialize the keyboard driver
     keyboard_init();
 
+
+
+
     // Test initialization
     test_init();
 
@@ -49,6 +54,8 @@ int main(void) {
 
     // Enable interrupts
     interrupts_enable();
+
+    scheduler_init();
 
     kproc_init();
 

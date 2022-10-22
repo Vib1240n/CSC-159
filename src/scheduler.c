@@ -36,7 +36,11 @@ void scheduler_timer(void) {
  */
 void scheduler_run(void) {
     // Ensure that processes not in the active state aren't still scheduled
+    
+    active_proc = pid_to_proc(0);
+
     // Check if we have an active process
+
     if (active_proc) {
         // Check if the current process has exceeded it's time slice
         if (active_proc->run_time >= SCHEDULER_TIMESLICE) {
@@ -55,7 +59,7 @@ void scheduler_run(void) {
         }
     }
     // Check if we have a process scheduled or not
-    if (
+    //if (
         // Get the proces id from the run queue
             // default to process id 0 (idle task) if a process can't be scheduled
 
@@ -104,7 +108,7 @@ void scheduler_init(void) {
     kernel_log_info("Initializing scheduler");
 
     // Initialize any data structures or variables
-    active_proc->pid = 0;
+    //active_proc->pid = pid_to_proc(0);
     // Register the timer callback (scheduler_timer) to run every tick
     timer_callback_register(scheduler_timer, 2, -1);
 }
