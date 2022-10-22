@@ -130,13 +130,14 @@ int kproc_destroy(proc_t *proc) {
     // Clear/Reset all process data (process control block, stack, etc) related to the process
     proc->state = NONE;
     proc->type = PROC_TYPE_NONE;
-    //proc->name = NULL;
+    memset(proc->name, 0, PROC_NAME_LEN*sizeof(char));
     proc->start_time = 0;
     proc->run_time = 0;
     proc->cpu_time = 0;
-    proc->stack = NULL;
+    memset(proc->stack, 0, sizeof(char));
+    memset(proc->trapframe, 0, sizeof(trapframe_t));
     // Add the process entry/index value back into the process allocator
-    queue_in(&proc_allocator, proc_to_entry(proc));
+    scheduler_add(proc);
     return -1;
 }
 
