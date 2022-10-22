@@ -10,12 +10,18 @@
 #include <spede/stdio.h>
 #include <spede/string.h>
 
-#include "kernel.h"
 #include "interrupts.h"
+#include "kernel.h"
+#include "scheduler.h"
+#include "trapframe.h"
+#include "vga.h"
 
 #ifndef KERNEL_LOG_LEVEL_DEFAULT
 #define KERNEL_LOG_LEVEL_DEFAULT KERNEL_LOG_LEVEL_DEBUG
 #endif
+
+// Global pointer to the current active process entry
+proc_t *active_proc = NULL;
 
 // Current log level
 int kernel_log_level = KERNEL_LOG_LEVEL_DEFAULT;
@@ -23,7 +29,7 @@ int kernel_log_level = KERNEL_LOG_LEVEL_DEFAULT;
 /**
  * Initializes any kernel internal data structures and variables
  */
-void kernel_init() {
+void kernel_init(void) {
     // Display a welcome message on the host
     kernel_log_info("Welcome to %s!", OS_NAME);
 
@@ -44,17 +50,13 @@ void kernel_log_error(char *msg, ...) {
 
     va_list args;
 
-    // Indicate this is an 'error' type of message
     printf("error: ");
 
-    // Pass the message variable arguments to vprintf
     va_start(args, msg);
     vprintf(msg, args);
     va_end(args);
 
     printf("\n");
-
-
 }
 
 /**
@@ -71,10 +73,8 @@ void kernel_log_warn(char *msg, ...) {
 
     va_list args;
 
-    // Indicate this is an 'warn' type of message
-    printf("warning: ");
+    printf("warn: ");
 
-    // Pass the message variable arguments to vprintf
     va_start(args, msg);
     vprintf(msg, args);
     va_end(args);
@@ -122,10 +122,8 @@ void kernel_log_debug(char *msg, ...) {
 
     va_list args;
 
-    // Indicate this is an 'debug' type of message
     printf("debug: ");
 
-    // Pass the message variable arguments to vprintf
     va_start(args, msg);
     vprintf(msg, args);
     va_end(args);
@@ -147,10 +145,8 @@ void kernel_log_trace(char *msg, ...) {
 
     va_list args;
 
-    // Indicate this is an 'trace' type of message
     printf("trace: ");
 
-    // Pass the message variable arguments to vprintf
     va_start(args, msg);
     vprintf(msg, args);
     va_end(args);
@@ -182,29 +178,72 @@ void kernel_panic(char *msg, ...) {
     exit(1);
 }
 
-void kernel_context_enter(trapframe_t *trapframe) {
-
-    // Handle the interrupt that occured
-    interrupts_irq_handler(trapframe->interrupt);
-    // Restore the process' context
-    kernel_context_exit(trapframe);
-
-}
-
-int kernel_get_log_level (void) {
+/**
+ * Returns the current log level
+ * @return the kernel log level
+ */
+int kernel_get_log_level(void) {
     return kernel_log_level;
 }
 
-int kernel_set_log_level (int level) {
-    if (level >= KERNEL_LOG_LEVEL_NONE && level <= KERNEL_LOG_LEVEL_ALL) {
+/**
+ * Sets the new log level and returns the value set
+ * @param level - the log level to set
+ * @return the kernel log level
+ */
+int kernel_set_log_level(int level) {
+    if (level < KERNEL_LOG_LEVEL_NONE) {
+        kernel_log_level = KERNEL_LOG_LEVEL_NONE;
+    } else if (level > KERNEL_LOG_LEVEL_ALL) {
+        kernel_log_level = KERNEL_LOG_LEVEL_ALL;
+    } else {
         kernel_log_level = level;
     }
-    kernel_log_info("Kernel log level - %i", kernel_log_level);
+
+    kernel_log_info("kernel log level set to %d", kernel_log_level);
+
     return kernel_log_level;
 }
 
-void kernel_exit (void) {
-    printf("Kernel exiting.");
-    printf("\n");
+/**
+ * Exits the kernel
+ */
+void kernel_exit(void) {
+    // Print to the terminal
+    printf("Exiting %s...\n", OS_NAME);
+
+    // Print to the VGA display
+    vga_set_bg(VGA_COLOR_RED);
+    vga_set_fg(VGA_COLOR_WHITE);
+    vga_set_xy(0, 0);
+    vga_printf("%*s", 80, "");
+    vga_set_xy(0, 0);
+    vga_printf("Exiting %s...\n", OS_NAME);
+
+    // Exit
     exit(0);
+}
+
+/**
+ * Kernel context entry point
+ * @param trapframe - pointer to the current process' trapframe
+ */
+void kernel_context_enter(trapframe_t *trapframe) {
+    if (active_proc) {
+        // Save the currently running trapframe
+        active_proc->trapframe = trapframe;
+    }
+
+    // Process the interrupt that occurred
+    interrupts_irq_handler(trapframe->interrupt);
+
+    // Run the scheduler
+    scheduler_run();
+
+    if (!active_proc) {
+        kernel_panic("No active process!");
+    }
+
+    // Exit the kernel context
+    kernel_context_exit(active_proc->trapframe);
 }
