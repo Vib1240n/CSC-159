@@ -36,28 +36,29 @@ int main(void) {
     // Initialize the keyboard driver
     keyboard_init();
 
+    // Initialize the scheduler
+    scheduler_init();
 
-
+    // Initialize processes
+    kproc_init();
 
     // Test initialization
     test_init();
 
     // Print a welcome message
+/*
     vga_printf("Welcome to %s!\n", OS_NAME);
     vga_puts("Press a key to continue...\n");
 
     // Wait for a key to be pressed
     keyboard_getc();
+*/
 
     // Clear the screen
     vga_clear();
 
     // Enable interrupts
     interrupts_enable();
-
-    scheduler_init();
-
-    kproc_init();
 
     // Loop in place forever
     while (1);

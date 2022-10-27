@@ -442,8 +442,7 @@ unsigned int keyboard_decode(unsigned int c) {
                 }
 
                 if (c == 'q' || c == 'Q') {
-                    // TODO: renable 
-                    // kproc_destroy(active_proc);
+                    kproc_destroy(active_proc);
                     return KEY_NULL;
                 }
 

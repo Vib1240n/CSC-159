@@ -47,20 +47,29 @@ int tty_get_active(void) {
 }
 
 /**
+ * Returns a pointer to the specified TTY table entry
+ * @param tty - TTY id
+ * @return pointer to TTY table entry
+ */
+struct tty_t *tty_get(int tty) {
+    return NULL;
+}
+
+/**
  * Refreshes the tty if needed
  */
 void tty_refresh(void) {
-
-    //unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
-
     if (!active_tty) {
         kernel_panic("No TTY is selected!");
         return;
     }
 
+    struct tty_t *tty = active_tty;
 
-    if (active_tty->refresh) {
-        kernel_log_debug("tty[%d]: refreshing", active_tty->id);
+    // Handle any characters in the output buffer
+
+    if (tty->refresh) {
+        kernel_log_trace("tty[%d]: refreshing", tty->id);
 
         int x = 0;
         int y = 0;
@@ -71,16 +80,26 @@ void tty_refresh(void) {
                 y++;
             }
 
-            vga_putc_at(x++, y, active_tty->color_bg, active_tty->color_fg, active_tty->buf[active_tty->pos_scroll*TTY_WIDTH + i]);
+            vga_putc_at(x++, y, tty->color_bg, tty->color_fg, tty->buf[tty->pos_scroll*TTY_WIDTH + i]);
         }
 
         // The screen has been refreshed, so clea the refresh flag
-        active_tty->refresh = 0;
+        tty->refresh = 0;
     }
 }
 
 /**
- * Updates the active TTY with the given character
+ * Write a character into the TTY process input buffer
+ * If the echo flag is set, will also write the character into the TTY
+ * process output buffer
+ * @param c - character to write into the input buffer
+ */
+void tty_input(char c) {
+}
+
+/**
+ * Updates the TTY with the given character
+ * @param c - character to update on the TTY screen output
  */
 void tty_update(char c) {
     if (!active_tty) {
@@ -89,9 +108,8 @@ void tty_update(char c) {
 
     struct tty_t *tty = active_tty;
 
-    printf("\nCurrent char pressed was: %d\n", c);
-    //    kernel_log_debug("tty[%d]: input char=%c", tty->id, c);
-    //    kernel_log_debug("  before scroll=%d, x=%d, y=%d", tty->pos_scroll, tty->pos_x, tty->pos_y);
+//    kernel_log_debug("tty[%d]: input char=%c", tty->id, c);
+//    kernel_log_debug("  before scroll=%d, x=%d, y=%d", tty->pos_scroll, tty->pos_x, tty->pos_y);
 
     switch (c) {
         case '\t':
@@ -147,23 +165,21 @@ void tty_update(char c) {
  * Initializes all TTY data structures and memory
  * Selects TTY 0 to be the default
  */
-
 void tty_init(void) {
     kernel_log_info("tty: Initializing TTY driver");
 
-    // Initialize the tty_table
     memset(tty_table, 0, sizeof(tty_table));
 
-    for(int i = 0; i< TTY_MAX; i++){
+    for (int i = 0; i < TTY_MAX; i++) {
         tty_table[i].id=i;
         tty_table[i].color_bg = VGA_COLOR_BLACK;
         tty_table[i].color_fg = VGA_COLOR_LIGHT_GREY;
+        tty_table[i].echo = 0;
     }
 
     // Select tty 0 to start with
     tty_select(0);
 
-    // Register a timer callback to update the screen on a regular interval  (50 times per second right now)
+    // Update the screen on a regular interval (50 times per second right now)
     timer_callback_register(tty_refresh, 2, -1);
 }
-
