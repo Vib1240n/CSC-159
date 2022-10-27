@@ -11,8 +11,10 @@
 #include <spede/machine/asmacros.h>
 
 // IRQ Definitions
-#define IRQ_TIMER    0x20      // PIC IRQ 0 (Timer)
-#define IRQ_KEYBOARD 0x21      // PIC IRQ 1 (Keyboard)
+#define IRQ_TIMER    0x20       // PIC IRQ 0 (Timer)
+#define IRQ_KEYBOARD 0x21       // PIC IRQ 1 (Keyboard)
+#define IRQ_SYSCALL  0x80       // System call IRQ
+
 
 #ifndef ASSEMBLER
 /**
@@ -69,10 +71,12 @@ int pic_irq_enabled(int irq);
  */
 void pic_irq_dismiss(int irq);
 
+
 __BEGIN_DECLS
 
 extern void isr_entry_timer();
 extern void isr_entry_keyboard();
+extern void isr_entry_syscall();
 
 __END_DECLS
 #endif
