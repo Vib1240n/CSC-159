@@ -8,6 +8,8 @@
 #ifndef TTY_H
 #define TTY_H
 
+#include "kproc.h"
+
 #ifndef TTY_MAX
 #define TTY_MAX         10  // Maximum number of TTYs to support
 #endif
@@ -38,6 +40,11 @@ typedef struct tty_t {
     int pos_y;                  // current y position in the screen
 
     int pos_scroll;             // Current scrollback position in the buffer
+
+    int echo;                   // If the TTY should echo or not
+
+    ringbuf_t io_input;         // Input buffer
+    ringbuf_t io_output;        // Output buffer
 } tty_t;
 
 /**
@@ -58,8 +65,25 @@ void tty_select(int tty);
  */
 int tty_get_active(void);
 
+
+/**
+ * Returns the tty structure for the given tty number
+ * @param tty_number - tty number/identifier
+ * @return NULL on error or pointer to entry in the tty table
+ */
+struct tty_t *tty_get(int tty);
+
+/**
+ * Write a character into the TTY process input buffer
+ * If the echo flag is set, will also write the character into the TTY
+ * process output buffer
+ * @param c - character to write into the input buffer
+ */
+void tty_input(char c);
+
 /**
  * Updates the TTY with the given character
+ * @param c - character to update on the TTY screen output
  */
 void tty_update(char c);
 

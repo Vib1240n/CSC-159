@@ -52,7 +52,7 @@ int tty_get_active(void) {
 void tty_refresh(void) {
 
     //unsigned int buf_pos = active_tty->pos_x*(active_tty->pos_y + TTY_SCROLLBACK);
-    
+
     if (!active_tty) {
         kernel_panic("No TTY is selected!");
         return;
@@ -89,7 +89,7 @@ void tty_update(char c) {
 
     struct tty_t *tty = active_tty;
 
-    printf("\nCurrent char pressed was: %d", c);
+    printf("\nCurrent char pressed was: %d\n", c);
     //    kernel_log_debug("tty[%d]: input char=%c", tty->id, c);
     //    kernel_log_debug("  before scroll=%d, x=%d, y=%d", tty->pos_scroll, tty->pos_x, tty->pos_y);
 
@@ -159,7 +159,6 @@ void tty_init(void) {
         tty_table[i].color_bg = VGA_COLOR_BLACK;
         tty_table[i].color_fg = VGA_COLOR_LIGHT_GREY;
     }
-    
 
     // Select tty 0 to start with
     tty_select(0);
