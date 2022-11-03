@@ -60,6 +60,7 @@ void ksyscall_irq_handler(void) {
  */
 void ksyscall_init(void) {
     // Register the IDT entry and IRQ handler for the syscall IRQ (IRQ_SYSCALL)
+    interrupts_irq_register(IRQ_SYSCALL, isr_entry_syscall, ksyscall_irq_handler);
 }
 
 /**
