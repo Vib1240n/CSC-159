@@ -27,6 +27,11 @@ ENTRY(isr_entry_timer)
     // Enter into the kernel context for processing
     jmp kernel_enter
 
+// Syscall ISR Entry
+ENTRY(isr_entry_syscall)
+    pushl $IRQ_SYSCALL
+    jmp kernel_enter
+
 /**
  * Enter the kernel context
  *  - Save register state
