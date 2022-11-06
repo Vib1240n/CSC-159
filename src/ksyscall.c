@@ -52,6 +52,42 @@ void ksyscall_irq_handler(void) {
         return;
     }
 
+    if (active_proc->trapframe->eax == SYSCALL_PROC_GET_PID) {
+        rc = ksyscall_proc_get_pid();
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_PROC_GET_NAME) {
+        rc = ksyscall_proc_get_name((char *)active_proc->trapframe->ebx);
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_PROC_EXIT) {
+        rc = ksyscall_proc_exit();
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_IO_WRITE) {
+        rc = ksyscall_io_write(active_proc->trapframe->ebx, (char *)active_proc->trapframe->ecx, active_proc->trapframe->edx);
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_IO_READ) {
+        rc = ksyscall_io_read(active_proc->trapframe->ebx, (char *)active_proc->trapframe->ecx, active_proc->trapframe->edx);
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_IO_FLUSH) {
+        rc = ksyscall_io_flush(active_proc->trapframe->ebx);
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
     kernel_panic("Invalid system call %d!", active_proc->trapframe->eax);
 }
 
