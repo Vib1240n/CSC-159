@@ -55,7 +55,14 @@ int _syscall1(int syscall, int arg1) {
 int _syscall2(int syscall, int arg1, int arg2) {
     int rc = -1;
 
-    // Implement me!
+    asm("movl %1, %%eax;"
+        "movl %2, %%ebx;"
+        "movl %3, %%ecx;"
+        "int $0x80;"
+        "movl %%eax, %0;"
+        : "=g"(rc)
+        : "g"(syscall), "g"(arg1), "g"(arg2)
+        : "%eax", "%ebx", "%ecx");
 
     return rc;
 }
@@ -71,7 +78,15 @@ int _syscall2(int syscall, int arg1, int arg2) {
 int _syscall3(int syscall, int arg1, int arg2, int arg3) {
     int rc = -1;
 
-    // Implement me!
+    asm("movl %1, %%eax;"
+        "movl %2, %%ebx;"
+        "movl %3, %%ecx;"
+        "movl %4, %%edx;"
+        "int $0x80;"
+        "movl %%eax, %0;"
+        : "=g"(rc)
+        : "g"(syscall), "g"(arg1), "g"(arg2), "g"(arg3)
+        : "%eax", "%ebx", "%ecx", "%edx");
 
     return rc;
 }
