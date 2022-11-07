@@ -164,7 +164,7 @@ int ksyscall_proc_sleep(int seconds) {
  * Exits the current process
  */
 int ksyscall_proc_exit(void) {
-    return -1;
+    return kproc_destroy(active_proc);
 }
 
 /**
@@ -172,7 +172,12 @@ int ksyscall_proc_exit(void) {
  * @return process id or -1 on error
  */
 int ksyscall_proc_get_pid(void) {
-    return -1;
+    if (active_proc->pid) {
+        return active_proc->pid;
+    }
+    else {
+        return -1;
+    }
 }
 
 /**
@@ -181,5 +186,9 @@ int ksyscall_proc_get_pid(void) {
  * @return 0 on success, -1 or other non-zero value on error
  */
 int ksyscall_proc_get_name(char *name) {
-    return -1;
+    if (!name) {
+        return -1;
+    }
+    strncpy(name, active_proc->name, PROC_NAME_LEN);
+    return 0;
 }

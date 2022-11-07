@@ -120,6 +120,7 @@ void proc_sleep(int secs) {
  * @param exitcode An exit code to return to the parent process
  */
 void proc_exit(int exitcode) {
+    _syscall0(SYSCALL_PROC_EXIT);
 }
 
 /**
@@ -127,7 +128,7 @@ void proc_exit(int exitcode) {
  * @return process id
  */
 int proc_get_pid(void) {
-    return -1;
+    return _syscall0(SYSCALL_PROC_GET_PID);
 }
 
 /**
@@ -136,7 +137,7 @@ int proc_get_pid(void) {
  * @return 0 on success, -1 or other non-zero value on error
  */
 int proc_get_name(char *name) {
-    return -1;
+    return _syscall1(SYSCALL_PROC_GET_NAME, (int)name);
 }
 
 /**
