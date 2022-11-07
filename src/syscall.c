@@ -148,7 +148,7 @@ int proc_get_name(char *name) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int io_write(int io, char *buf, int n) {
-    return 0;
+    return _syscall3(SYSCALL_IO_WRITE, io, (int)buf, n);
 }
 
 /**
@@ -159,7 +159,7 @@ int io_write(int io, char *buf, int n) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int io_read(int io, char *buf, int n) {
-    return 0;
+    return _syscall3(SYSCALL_IO_READ, io, (int)buf, n);
 }
 
 /**
@@ -168,5 +168,5 @@ int io_read(int io, char *buf, int n) {
  * @return -1 on error or 0 on success
  */
 int io_flush(int io) {
-    return 0;
+    return _syscall1(SYSCALL_IO_FLUSH, io);
 }

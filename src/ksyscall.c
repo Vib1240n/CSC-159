@@ -107,7 +107,7 @@ void ksyscall_init(void) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int ksyscall_io_write(int io, char *buf, int size) {
-    return 0;
+    return ringbuf_write_mem(active_proc->io[io], buf, size);
 }
 
 /**
@@ -118,7 +118,7 @@ int ksyscall_io_write(int io, char *buf, int size) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int ksyscall_io_read(int io, char *buf, int size) {
-    return 0;
+    return ringbuf_read_mem(active_proc->io[io], buf, size);
 }
 
 /**
@@ -127,7 +127,7 @@ int ksyscall_io_read(int io, char *buf, int size) {
  * @return -1 on error or 0 on success
  */
 int ksyscall_io_flush(int io) {
-    return -1;
+    return ringbuf_flush(active_proc->io[io]);
 }
 
 /**
