@@ -13,7 +13,7 @@
 #include "tty.h"
 #include "vga.h"
 #include "scheduler.h"
-
+#include "ksyscall.h"
 
 #include "test.h"
 
@@ -41,6 +41,8 @@ int main(void) {
 
     // Initialize processes
     kproc_init();
+
+    ksyscall_init();
 
     // Test initialization
     test_init();
