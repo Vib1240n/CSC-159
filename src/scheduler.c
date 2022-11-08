@@ -20,6 +20,7 @@
 
 // Process Queues
 queue_t run_queue;      // Run queue -> processes that will be scheduled to run
+queue_t sleep_queue;
 
 /**
  * Scheduler timer callback
@@ -154,9 +155,13 @@ void scheduler_remove(proc_t *proc) {
  */
 void scheduler_sleep(proc_t *proc, int time) {
     // Set the sleep time
+    proc->sleep_time = time;
     // Set the process state to SLEEPING
+    proc->state = SLEEPING;
     // Remove the process from the scheduler
+    scheduler_remove(proc);
     // Add the proces to the sleep queue
+    //queue_in(&sleep_queue, proc->pid);
 }
 
 /**

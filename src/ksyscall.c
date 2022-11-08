@@ -22,6 +22,12 @@
  */
 void ksyscall_irq_handler(void) {
     // Default return value
+    /*
+    int syscall = active_proc->trapframe->eax;
+    int arg1 = active_proc->trapframe->ebx;
+    int arg2 = active_proc->trapframe->ecx;
+    int arg3 = active_proc->trapframe->edx;
+    */
     int rc = -1;
 
     if (!active_proc) {
@@ -41,7 +47,7 @@ void ksyscall_irq_handler(void) {
 
     if (active_proc->trapframe->eax == SYSCALL_SYS_GET_TIME) {
         rc = ksyscall_sys_get_time();
-        active_proc->trapframe->eax = rc;
+        //active_proc->trapframe->eax = rc;
         return;
     }
 
@@ -66,7 +72,7 @@ void ksyscall_irq_handler(void) {
 
     if (active_proc->trapframe->eax == SYSCALL_PROC_EXIT) {
         rc = ksyscall_proc_exit();
-        active_proc->trapframe->eax = rc;
+        //active_proc->trapframe->eax = rc;
         return;
     }
 
@@ -84,6 +90,12 @@ void ksyscall_irq_handler(void) {
 
     if (active_proc->trapframe->eax == SYSCALL_IO_FLUSH) {
         rc = ksyscall_io_flush(active_proc->trapframe->ebx);
+        active_proc->trapframe->eax = rc;
+        return;
+    }
+
+    if (active_proc->trapframe->eax == SYSCALL_PROC_SLEEP) {
+        rc = ksyscall_proc_sleep(active_proc->trapframe->ebx);
         active_proc->trapframe->eax = rc;
         return;
     }
@@ -157,14 +169,21 @@ int ksyscall_sys_get_name(char *name) {
  * @param seconds - number of seconds the process should sleep
  */
 int ksyscall_proc_sleep(int seconds) {
-    return -1;
+    /*
+    if (!seconds) {
+        return -1;
+    }
+    scheduler_sleep(active_proc, seconds);
+    */
+    return 0;
 }
 
 /**
  * Exits the current process
  */
 int ksyscall_proc_exit(void) {
-    return kproc_destroy(active_proc);
+    kproc_destroy(active_proc);
+    return 0;
 }
 
 /**
