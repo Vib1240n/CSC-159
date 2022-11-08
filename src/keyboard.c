@@ -241,7 +241,8 @@ static const char keyboard_map_secondary[] = {
 void keyboard_irq_handler(void) {
     unsigned int c = keyboard_poll();
     if (c) {
-        tty_update(c);
+        //tty_update(c);
+        tty_input(c);
     }
 }
 

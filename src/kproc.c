@@ -20,6 +20,8 @@
 #include "prog_user.h"
 #include "syscall_common.h"
 
+#include "tty.h"
+
 // Next available process id to be assigned
 int next_pid;
 
@@ -220,8 +222,8 @@ void kproc_test(void) {
  *   IO[0] should be input
  *   IO[1] should be output
  */
-/*int kproc_attach_tty(int pid, int tty_number) {
-     proc_t *proc = pid_to_proc(pid);
+int kproc_attach_tty(int pid, int tty_number) {
+    proc_t *proc = pid_to_proc(pid);
     struct tty_t *tty = tty_get(tty_number);
 
     if (proc && tty) {
@@ -232,7 +234,7 @@ void kproc_test(void) {
     }
 
     return -1; 
-}*/
+}
 
 /**
  * Initializes all process related data structures
@@ -260,6 +262,13 @@ void kproc_init(void) {
 
     // Create/execute the idle process (kproc_idle)
     pid = kproc_create(kproc_idle, "idle", PROC_TYPE_KERNEL);
+
+    kproc_attach_tty(pid, pid);
+
+    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 1);
+    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 2);
+    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 3);
+    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 4);
 
     kernel_log_info("Created idle process %d", pid);
 }
