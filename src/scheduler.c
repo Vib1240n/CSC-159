@@ -30,6 +30,12 @@ void scheduler_timer(void) {
     if (active_proc) {
         active_proc->run_time++;
         active_proc->cpu_time++;
+
+        /*
+        if (active_proc->state == SLEEPING && active_proc->run_time == active_proc->sleep_time) {
+            scheduler_add(active_proc);
+        }
+        */
     }
 }
 
@@ -161,7 +167,7 @@ void scheduler_sleep(proc_t *proc, int time) {
     // Remove the process from the scheduler
     scheduler_remove(proc);
     // Add the proces to the sleep queue
-    //queue_in(&sleep_queue, proc->pid);
+    queue_in(&sleep_queue, proc->pid);
 }
 
 /**

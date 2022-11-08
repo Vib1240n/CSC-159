@@ -96,7 +96,7 @@ void ksyscall_irq_handler(void) {
 
     if (active_proc->trapframe->eax == SYSCALL_PROC_SLEEP) {
         rc = ksyscall_proc_sleep(active_proc->trapframe->ebx);
-        active_proc->trapframe->eax = rc;
+        //active_proc->trapframe->eax = rc;
         return;
     }
 
@@ -170,12 +170,10 @@ int ksyscall_sys_get_name(char *name) {
  */
 int ksyscall_proc_sleep(int seconds) {
     /*
-    if (!seconds) {
-        return -1;
-    }
     scheduler_sleep(active_proc, seconds);
-    */
     return 0;
+    */
+    return -1;
 }
 
 /**
