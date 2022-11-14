@@ -6,6 +6,7 @@
  * Operating system entry point
  */
 
+#include <spede/stdbool.h>
 #include "interrupts.h"
 #include "kernel.h"
 #include "keyboard.h"
@@ -13,9 +14,11 @@
 #include "tty.h"
 #include "vga.h"
 #include "scheduler.h"
+#include "kproc.h"
 #include "ksyscall.h"
-
 #include "test.h"
+#include "kmutex.h"
+#include "ksem.h"
 
 int main(void) {
     // Always iniialize the kernel
@@ -42,7 +45,14 @@ int main(void) {
     // Initialize processes
     kproc_init();
 
+    // Initialize system calls
     ksyscall_init();
+
+    // Initialize kernel semaphores
+    ksemaphores_init();
+
+    // Initialize kernel mutexes
+    kmutexes_init();
 
     // Test initialization
     test_init();

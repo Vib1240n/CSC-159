@@ -2,10 +2,9 @@
 #include <spede/stdio.h>
 #include <spede/machine/io.h>
 
+#include "interrupts.h"
 #include "kernel.h"
 #include "keyboard.h"
-#include "interrupts.h"
-#include "vga.h"
 #include "kproc.h"
 #include "tty.h"
 
@@ -34,8 +33,6 @@
 
 #define KEY_CAPS                0x3A
 #define KEY_NUMLOCK             0x45
-
-/* #define RELEASED                0x80 */
 
 // Macros for handling keyboard presses or releases
 #define KEY_PRESSED(c)          ((c & 0x80) == 0)
@@ -238,13 +235,19 @@ static const char keyboard_map_secondary[] = {
     KEY_NULL,           /* 0x7e */
     KEY_NULL            /* 0x7f */
 };
+
+
+/*
+ *
+ */
 void keyboard_irq_handler(void) {
     unsigned int c = keyboard_poll();
+
     if (c) {
-        //tty_update(c);
         tty_input(c);
     }
 }
+
 
 /**
  * Initializes keyboard data structures and variables
@@ -264,8 +267,9 @@ void keyboard_init() {
  * @return raw character data from the keyboard
  */
 unsigned int keyboard_scan(void) {
-    unsigned int c = inportb(KBD_PORT_DATA);
-    // kernel_log_trace("keyboard: raw data [0x%02x]", c);
+    unsigned int c;
+    c = inportb(KBD_PORT_DATA);
+//    kernel_log_trace("keyboard: raw data [0x%02x]", c);
     return c;
 }
 
@@ -284,7 +288,6 @@ unsigned int keyboard_poll(void) {
     if ((inportb(KBD_PORT_STAT) & 0x1) != 0) {
         c = keyboard_scan();
         c = keyboard_decode(c);
-        
     }
 
     return c;
