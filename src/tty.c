@@ -52,6 +52,11 @@ int tty_get_active(void) {
  * @return pointer to TTY table entry
  */
 struct tty_t *tty_get(int tty) {
+    if (tty < 0 || tty >= TTY_MAX) {
+        kernel_panic("Invalid TTY %d", tty);
+        return NULL;
+    }
+    
     return &tty_table[tty];
 }
 
@@ -67,16 +72,18 @@ void tty_refresh(void) {
     struct tty_t *tty = active_tty;
 
     // Handle any characters in the output buffer
-
-    /**
     char c;
-    ringbuf_read_mem(&tty->io_input, &c, 128);
-    kernel_log_info("tty update %x", c);
-    tty_update(*tty->buf);**/
-
-    char c;
+    /*
     if (ringbuf_read_mem(&tty->io_output, &c, sizeof(char))) {
         tty_update(c);
+    }
+    */
+
+   // Handle new I/O
+    while (!ringbuf_is_empty(&tty->io_output)) {
+        if (ringbuf_read(&tty->io_output, &c) == 0) {
+            tty_update(c);
+        }
     }
 
     if (tty->refresh) {
@@ -106,6 +113,9 @@ void tty_refresh(void) {
  * @param c - character to write into the input buffer
  */
 void tty_input(char c) {
+    if (!active_tty) {
+        return;
+    }
     ringbuf_write(&active_tty->io_input, c);
     if (active_tty->echo) {
         ringbuf_write(&active_tty->io_output, c);
@@ -196,5 +206,5 @@ void tty_init(void) {
     tty_select(0);
 
     // Update the screen on a regular interval (50 times per second right now)
-    timer_callback_register(tty_refresh, 1, -1);
+    timer_callback_register(tty_refresh, 2, -1);
 }

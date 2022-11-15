@@ -9,6 +9,7 @@
 #define VGA_H
 
 #include <spede/stdio.h>
+#include "tty.h"
 
 #define VGA_BASE                ((unsigned short *)(0xB8000))
 #define VGA_ATTR(bg, fg)        (((bg & 0xf) << 4) | (fg & 0xf))
@@ -181,5 +182,10 @@ void vga_cursor_enable(void);
  * Disables the VGA text mode cursor
  */
 void vga_cursor_disable(void);
+
+/**
+ * Refresh the VGA for the given TTY
+ */
+void vga_tty_refresh(tty_t *tty);
 
 #endif

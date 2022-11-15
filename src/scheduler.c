@@ -182,7 +182,6 @@ void scheduler_sleep(proc_t *proc, int time) {
         kernel_panic("Invalid process");
         return;
     }
-
     
     // Set the sleep time
     proc->sleep_time = time;
