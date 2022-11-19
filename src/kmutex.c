@@ -27,9 +27,13 @@ int kmutexes_init() {
     kernel_log_info("Initializing kernel mutexes");
 
     // Initialize the mutex table
-
+    memset(&mutexes, 0, sizeof(mutexes));
+    for (int i = 0; i < MUTEX_MAX; i++) {
+        mutexes[i].allocated = 0;
+        mutexes[i].owner = NULL;
+    }
     // Initialize the mutex queue
-
+    memset(&mutex_queue, 0, sizeof(mutex_queue));
     // Fill the mutex queue
 
     return 0;
