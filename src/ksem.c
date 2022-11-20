@@ -50,14 +50,23 @@ int ksemaphores_init() {
  */
 int ksem_init(int value) {
     // Obtain a semaphore id from the semaphore queue
-
+    int id = -1;
+    if (queue_out(&sem_queue, &id) != 0) {
+        id++;
+    }
     // Ensure that the id is within the valid range
-
+    if(id > SEM_MAX || id < 0) {
+        return -1;
+    }
     // Initialize the semaphore data structure
     // sempohare table + all members (wait queue, allocated, count)
         // set count to initial value
-
-    return -1;
+    for (int i = 0; i < SEM_MAX; i++) {
+        memset(&semaphores[i].wait_queue, 0, sizeof(semaphores[i].wait_queue));
+        semaphores[i].allocated = 1;
+        semaphores[i].count = 0;
+    }
+    return id;
 }
 
 /**
@@ -67,14 +76,22 @@ int ksem_init(int value) {
  */
 int ksem_destroy(int id) {
     // look up the sempaphore in the semaphore table
-
+    if(id > SEM_MAX || id < 0) {
+        return -1;
+    }
+    sem_t *sem = &semaphores[id];
     // If the semaphore is locked, prevent it from being destroyed
-
+    if (sem->count > 0) {
+        return -1;
+    }
     // Add the id back into the semaphore queue to be re-used later
-
+    queue_in(&sem_queue, id);
     // Clear the memory for the data structure
+    sem->allocated = 0;
+    sem->count = 0;
+    memset(&sem->wait_queue, 0, sizeof(sem->wait_queue));
 
-    return -1;
+    return 0;
 }
 
 /**
@@ -84,18 +101,23 @@ int ksem_destroy(int id) {
  */
 int ksem_wait(int id) {
     // look up the sempaphore in the semaphore table
-
+    sem_t *sem = &semaphores[id];
     // If the semaphore count is 0, then the process must wait
         // Set the state to WAITING
         // add to the semaphore's wait queue
         // remove from the scheduler
-
+    if (sem->count <= 0) {
+        active_proc->state = WAITING;
+        queue_in(&sem->wait_queue, active_proc->pid);
+        scheduler_remove(active_proc);
+    }
     // If the semaphore count is > 0
         // Decrement the count
-
+    if (sem->count > 0) {
+        sem->count = sem->count - 1;
+    }
     // Return the current semaphore count
-
-    return -1;
+    return sem->count;
 }
 
 /**
@@ -106,14 +128,23 @@ int ksem_wait(int id) {
 int ksem_post(int id) {
 
     // look up the semaphore in the semaphore table
-
+    sem_t *sem = &semaphores[id];
     // incrememnt the semaphore count
-
+    sem->count = sem->count + 1;
     // check if any processes are waiting on the semaphore (semaphore wait queue)
         // if so, queue out and add to the scheduler
         // decrement the semaphore count
-
+    for (int i = 0; i < SEM_MAX; i++) {
+        if (queue_out(&sem->wait_queue, &i)) {
+            //queue_in(&sem->wait_queue, i);
+            break;
+        }
+        else {
+            scheduler_add(pid_to_proc(i));
+            sem->count = sem->count - 1;
+            break;
+        }
+    }
     // return current semaphore count
-
-    return -1;
+    return sem->count;
 }

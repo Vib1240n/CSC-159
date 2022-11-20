@@ -213,7 +213,7 @@ int mutex_unlock(int mutex) {
  * @return -1 on error, all other values indicate the semaphore id
  */
 int sem_init(int value) {
-    return -1;
+    return _syscall1(SYSCALL_SEM_INIT, value);
 }
 
 /**
@@ -222,7 +222,7 @@ int sem_init(int value) {
  * @return -1 on error, 0 on success
  */
 int sem_destroy(int sem) {
-    return -1;
+    return _syscall1(SYSCALL_SEM_DESTROY, sem);
 }
 
 /**
@@ -231,7 +231,7 @@ int sem_destroy(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int sem_wait(int sem) {
-    return -1;
+    return _syscall1(SYSCALL_SEM_WAIT, sem);
 }
 
 /**
@@ -240,6 +240,6 @@ int sem_wait(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int sem_post(int sem) {
-    return -1;
+    return _syscall1(SYSCALL_SEM_POST, sem);
 }
 

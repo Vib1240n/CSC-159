@@ -324,7 +324,7 @@ int ksyscall_mutex_unlock(int mutex) {
  * @return -1 on error, all other values indicate the semaphore id
  */
 int ksyscall_sem_init(int value) {
-    return -1;
+    return ksem_init(value);
 }
 
 /**
@@ -333,7 +333,7 @@ int ksyscall_sem_init(int value) {
  * @return -1 on error, 0 on success
  */
 int ksyscall_sem_destroy(int sem) {
-    return -1;
+    return ksem_destroy(sem);
 }
 
 /**
@@ -342,7 +342,7 @@ int ksyscall_sem_destroy(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int ksyscall_sem_wait(int sem) {
-    return -1;
+    return ksem_wait(sem);
 }
 
 /**
@@ -351,6 +351,6 @@ int ksyscall_sem_wait(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int ksyscall_sem_post(int sem) {
-    return -1;
+    return ksem_post(sem);
 }
 
