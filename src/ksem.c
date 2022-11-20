@@ -27,10 +27,18 @@ int ksemaphores_init() {
     kernel_log_info("Initializing kernel semaphores");
 
     // Initialize the semaphore table
-
+    memset(&semaphores, 0, sizeof(semaphores));
+    for (int i = 0; i < SEM_MAX; i++) {
+        semaphores[i].allocated = 0;
+    }
     // Initialize the semaphore queue
-
+    memset(&sem_queue, 0, sizeof(sem_queue));
     // Fill the semaphore queue
+    for (int i = 0; i < SEM_MAX; i++) {
+        if (queue_in(&sem_queue, i) != 0) {
+            kernel_log_warn("timer: unable to queue semaphore %d", i);
+        }
+    }
 
     return 0;
 }
