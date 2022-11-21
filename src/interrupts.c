@@ -12,7 +12,6 @@
 
 #include "kernel.h"
 #include "interrupts.h"
-#include "bit_util.h"
 
 // Maximum number of ISR handlers
 #define IRQ_MAX      0xf0
@@ -184,7 +183,7 @@ void pic_irq_disable(int irq) {
  * @param irq - IRQ to check
  * @return - 1 if enabled, 0 if disabled
  */
-int pic_irq_enabled(int irq) {    
+int pic_irq_enabled(int irq) {
     int port = PIC1_DATA;
     int mask;
 
@@ -236,4 +235,3 @@ void interrupts_init() {
 
     memset(irq_handlers, 0, sizeof(irq_handlers));
 }
-

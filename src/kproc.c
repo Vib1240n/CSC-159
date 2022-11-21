@@ -20,8 +20,6 @@
 #include "prog_user.h"
 #include "syscall_common.h"
 
-#include "tty.h"
-
 // Next available process id to be assigned
 int next_pid;
 
@@ -227,13 +225,13 @@ int kproc_attach_tty(int pid, int tty_number) {
     struct tty_t *tty = tty_get(tty_number);
 
     if (proc && tty) {
-        kernel_log_debug("Attaching process %d to TTY id to PID %d", proc->pid, tty_number);
+        kernel_log_debug("Attaching PID %d to TTY id %d", proc->pid, tty_number);
         proc->io[PROC_IO_IN] = &tty->io_input;
         proc->io[PROC_IO_OUT] = &tty->io_output;
         return 0;
     }
 
-    return -1; 
+    return -1;
 }
 
 /**
@@ -263,12 +261,28 @@ void kproc_init(void) {
     // Create/execute the idle process (kproc_idle)
     pid = kproc_create(kproc_idle, "idle", PROC_TYPE_KERNEL);
 
-    kproc_attach_tty(pid, pid);
-
-    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 1);
-    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 2);
-    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 3);
-    kproc_attach_tty(kproc_create(prog_shell, "shell", PROC_TYPE_KERNEL), 4);
-
     kernel_log_info("Created idle process %d", pid);
+
+    for (int i = 1; i < 5; i++) {
+        pid = kproc_create(prog_shell, "shell", PROC_TYPE_USER);
+
+        kernel_log_debug("Created shell process %d", pid);
+
+        // Attach the process to the TTY
+        kproc_attach_tty(pid, i);
+    }
+
+    for (int i = 0; i < 3; i++) {
+        pid = kproc_create(prog_ping, "ping", PROC_TYPE_USER);
+        kernel_log_debug("Created ping process %d", pid);
+
+        kproc_attach_tty(pid, (TTY_MAX - (pid % 2) - 1));
+    }
+
+    for (int i = 0; i < 3; i++) {
+        pid = kproc_create(prog_pong, "pong", PROC_TYPE_USER);
+        kernel_log_debug("Created pong process %d", pid);
+
+        kproc_attach_tty(pid, (TTY_MAX - (pid % 2) - 1));
+    }
 }

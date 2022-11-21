@@ -20,22 +20,40 @@
 
 // Process Queues
 queue_t run_queue;      // Run queue -> processes that will be scheduled to run
-queue_t sleep_queue;
+queue_t sleep_queue;    // Sleep queue -> processes that are currently sleeping
 
 /**
  * Scheduler timer callback
  */
 void scheduler_timer(void) {
+    int pid;
+    proc_t *proc;
+
     // Update the active process' run time and CPU time
     if (active_proc) {
         active_proc->run_time++;
         active_proc->cpu_time++;
+    }
 
-        /*
-        if (active_proc->state == SLEEPING && active_proc->run_time == active_proc->sleep_time) {
-            scheduler_add(active_proc);
+    for (int i = 0; i < sleep_queue.size; i++) {
+        pid = -1;
+
+        if (queue_out(&sleep_queue, &pid) != 0) {
+            kernel_log_warn("Unable to queue out of sleep queue");
+            continue;
         }
-        */
+
+        proc = pid_to_proc(pid);
+        if (!proc) {
+            kernel_log_warn("Unable to look up process id %d", pid);
+            continue;
+        }
+
+        if (proc->sleep_time-- >= 0) {
+            queue_in(&sleep_queue, pid);
+        } else {
+            scheduler_add(proc);
+        }
     }
 }
 
@@ -160,14 +178,23 @@ void scheduler_remove(proc_t *proc) {
  * @param time - number of ticks to sleep
  */
 void scheduler_sleep(proc_t *proc, int time) {
+    if (!proc) {
+        kernel_panic("Invalid process");
+        return;
+    }
+    
     // Set the sleep time
     proc->sleep_time = time;
-    // Set the process state to SLEEPING
-    proc->state = SLEEPING;
-    // Remove the process from the scheduler
+    if (proc->state == SLEEPING) {
+        return;
+    }
+
     scheduler_remove(proc);
-    // Add the proces to the sleep queue
-    queue_in(&sleep_queue, proc->pid);
+
+    proc->state = SLEEPING;
+    proc->scheduler_queue = &sleep_queue;
+
+    queue_in(proc->scheduler_queue, proc->pid);
 }
 
 /**
@@ -178,6 +205,9 @@ void scheduler_init(void) {
 
     /* Initialize the run queue */
     queue_init(&run_queue);
+
+    /* Initialize the sleep queue */
+    queue_init(&sleep_queue);
 
     /* Register the timer callback */
     timer_callback_register(&scheduler_timer, 1, -1);

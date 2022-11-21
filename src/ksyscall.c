@@ -15,6 +15,8 @@
 #include "interrupts.h"
 #include "scheduler.h"
 #include "timer.h"
+#include "ksem.h"
+#include "kmutex.h"
 
 /**
  * System call IRQ handler
@@ -22,13 +24,13 @@
  */
 void ksyscall_irq_handler(void) {
     // Default return value
-    /*
-    int syscall = active_proc->trapframe->eax;
-    int arg1 = active_proc->trapframe->ebx;
-    int arg2 = active_proc->trapframe->ecx;
-    int arg3 = active_proc->trapframe->edx;
-    */
     int rc = -1;
+
+    int syscall;
+
+    unsigned int arg1;
+    unsigned int arg2;
+    unsigned int arg3;
 
     if (!active_proc) {
         kernel_panic("Invalid process");
@@ -40,67 +42,91 @@ void ksyscall_irq_handler(void) {
 
     // System call identifier is stored on the EAX register
     // Additional arguments should be stored on additional registers (EBX, ECX, etc.)
+    syscall = active_proc->trapframe->eax;
+    arg1 = active_proc->trapframe->ebx;
+    arg2 = active_proc->trapframe->ecx;
+    arg3 = active_proc->trapframe->edx;
 
     // Based upon the system call identifier, call the respective system call handler
 
     // Ensure that the EAX register for the active process contains the return value
+    switch (syscall) {
+        case SYSCALL_IO_WRITE:
+            rc = ksyscall_io_write((int)arg1, (char *)arg2, (int)arg3);
+            break;
 
-    if (active_proc->trapframe->eax == SYSCALL_SYS_GET_TIME) {
-        rc = ksyscall_sys_get_time();
-        //active_proc->trapframe->eax = rc;
-        return;
+        case SYSCALL_IO_READ:
+            rc = ksyscall_io_read((int)arg1, (char *)arg2, (int)arg3);
+            break;
+
+        case SYSCALL_IO_FLUSH:
+            rc = ksyscall_io_flush((int)arg1);
+            break;
+
+        case SYSCALL_SYS_GET_TIME:
+            rc = ksyscall_sys_get_time();
+            break;
+
+        case SYSCALL_SYS_GET_NAME:
+            rc = ksyscall_sys_get_name((char *)arg1);
+            break;
+
+        case SYSCALL_PROC_SLEEP:
+            rc = ksyscall_proc_sleep((int)arg1);
+            break;
+
+        case SYSCALL_PROC_EXIT:
+            rc = ksyscall_proc_exit();
+            break;
+
+        case SYSCALL_PROC_GET_PID:
+            rc = ksyscall_proc_get_pid();
+            break;
+
+        case SYSCALL_PROC_GET_NAME:
+            rc = ksyscall_proc_get_name((char *)arg1);
+            break;
+
+        case SYSCALL_MUTEX_INIT:
+            rc = ksyscall_mutex_init();
+            break;
+
+        case SYSCALL_MUTEX_DESTROY:
+            rc = ksyscall_mutex_destroy(arg1);
+            break;
+
+        case SYSCALL_MUTEX_LOCK:
+            rc = ksyscall_mutex_lock(arg1);
+            break;
+
+        case SYSCALL_MUTEX_UNLOCK:
+            rc = ksyscall_mutex_unlock(arg1);
+            break;
+
+        case SYSCALL_SEM_INIT:
+            rc = ksyscall_sem_init(arg1);
+            break;
+
+        case SYSCALL_SEM_DESTROY:
+            rc = ksyscall_sem_destroy(arg1);
+            break;
+
+        case SYSCALL_SEM_POST:
+            rc = ksyscall_sem_post(arg1);
+            break;
+
+        case SYSCALL_SEM_WAIT:
+            rc = ksyscall_sem_wait(arg1);
+            break;
+
+        default:
+            kernel_panic("Invalid system call %d!", syscall);
     }
 
-    if (active_proc->trapframe->eax == SYSCALL_SYS_GET_NAME) {
-        // Cast the argument as a char pointer
-        rc = ksyscall_sys_get_name((char *)active_proc->trapframe->ebx);
-        active_proc->trapframe->eax = rc;
-        return;
+    // Ensure that the EAX register contains a return value (if appropriate)
+    if (active_proc) {
+        active_proc->trapframe->eax = (unsigned int)rc;
     }
-
-    if (active_proc->trapframe->eax == SYSCALL_PROC_GET_PID) {
-        rc = ksyscall_proc_get_pid();
-        active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_PROC_GET_NAME) {
-        rc = ksyscall_proc_get_name((char *)active_proc->trapframe->ebx);
-        active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_PROC_EXIT) {
-        rc = ksyscall_proc_exit();
-        //active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_IO_WRITE) {
-        rc = ksyscall_io_write(active_proc->trapframe->ebx, (char *)active_proc->trapframe->ecx, active_proc->trapframe->edx);
-        active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_IO_READ) {
-        rc = ksyscall_io_read(active_proc->trapframe->ebx, (char *)active_proc->trapframe->ecx, active_proc->trapframe->edx);
-        active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_IO_FLUSH) {
-        rc = ksyscall_io_flush(active_proc->trapframe->ebx);
-        active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    if (active_proc->trapframe->eax == SYSCALL_PROC_SLEEP) {
-        rc = ksyscall_proc_sleep(active_proc->trapframe->ebx);
-        //active_proc->trapframe->eax = rc;
-        return;
-    }
-
-    kernel_panic("Invalid system call %d!", active_proc->trapframe->eax);
 }
 
 /**
@@ -119,6 +145,22 @@ void ksyscall_init(void) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int ksyscall_io_write(int io, char *buf, int size) {
+    if (!active_proc) {
+        return -1;
+    }
+
+    if (!active_proc) {
+        return -1;
+    }
+
+    if (io < 0 || io >= PROC_IO_MAX) {
+        return -1;
+    }
+
+    if (!active_proc->io[io]) {
+        return -1;
+    }
+
     return ringbuf_write_mem(active_proc->io[io], buf, size);
 }
 
@@ -130,6 +172,18 @@ int ksyscall_io_write(int io, char *buf, int size) {
  * @return -1 on error or value indicating number of bytes copied
  */
 int ksyscall_io_read(int io, char *buf, int size) {
+    if (!active_proc) {
+        return -1;
+    }
+
+    if (io < 0 || io >= PROC_IO_MAX) {
+        return -1;
+    }
+
+    if (!active_proc->io[io]) {
+        return -1;
+    }
+
     return ringbuf_read_mem(active_proc->io[io], buf, size);
 }
 
@@ -139,7 +193,21 @@ int ksyscall_io_read(int io, char *buf, int size) {
  * @return -1 on error or 0 on success
  */
 int ksyscall_io_flush(int io) {
-    return ringbuf_flush(active_proc->io[io]);
+    if (!active_proc) {
+        return -1;
+    }
+
+    if (io < 0 || io >= PROC_IO_MAX) {
+        return -1;
+    }
+
+    if (!active_proc->io[io]) {
+        return -1;
+    }
+
+    ringbuf_flush(active_proc->io[io]);
+
+    return 0;
 }
 
 /**
@@ -169,19 +237,15 @@ int ksyscall_sys_get_name(char *name) {
  * @param seconds - number of seconds the process should sleep
  */
 int ksyscall_proc_sleep(int seconds) {
-    /*
-    scheduler_sleep(active_proc, seconds);
+    scheduler_sleep(active_proc, seconds * 100);
     return 0;
-    */
-    return -1;
 }
 
 /**
  * Exits the current process
  */
 int ksyscall_proc_exit(void) {
-    kproc_destroy(active_proc);
-    return 0;
+    return kproc_destroy(active_proc);
 }
 
 /**
@@ -189,12 +253,20 @@ int ksyscall_proc_exit(void) {
  * @return process id or -1 on error
  */
 int ksyscall_proc_get_pid(void) {
+    /*
     if (active_proc->pid) {
         return active_proc->pid;
     }
     else {
         return -1;
     }
+    */
+
+    if (!active_proc) {
+        return -1;
+    }
+
+    return active_proc->pid;
 }
 
 /**
@@ -206,6 +278,79 @@ int ksyscall_proc_get_name(char *name) {
     if (!name) {
         return -1;
     }
+
     strncpy(name, active_proc->name, PROC_NAME_LEN);
     return 0;
 }
+
+/**
+ * Allocates a mutex from the kernel
+ * @return -1 on error, all other values indicate the mutex id
+ */
+int ksyscall_mutex_init(void) {
+    return kmutex_init();
+}
+
+/**
+ * Detroys a mutex
+ * @return -1 on error, 0 on sucecss
+ */
+int ksyscall_mutex_destroy(int mutex) {
+    return kmutex_destroy(mutex);
+}
+
+/**
+ * Locks the mutex
+ * @param mutex - mutex id
+ * @return -1 on error, 0 on sucecss
+ * @note If the mutex is already locked, process will block/wait.
+ */
+int ksyscall_mutex_lock(int mutex) {
+    return kmutex_lock(mutex);
+}
+
+/**
+ * Unlocks the mutex
+ * @param mutex - mutex id
+ * @return -1 on error, 0 on sucecss
+ */
+int ksyscall_mutex_unlock(int mutex) {
+    return kmutex_unlock(mutex);
+}
+
+/**
+ * Allocates a semaphore from the kernel
+ * @param value - initial semaphore value
+ * @return -1 on error, all other values indicate the semaphore id
+ */
+int ksyscall_sem_init(int value) {
+    return ksem_init(value);
+}
+
+/**
+ * Destroys a semaphore
+ * @param sem - semaphore id
+ * @return -1 on error, 0 on success
+ */
+int ksyscall_sem_destroy(int sem) {
+    return ksem_destroy(sem);
+}
+
+/**
+ * Waits on a semaphore
+ * @param sem - semaphore id
+ * @return -1 on error, otherwise the current semaphore count
+ */
+int ksyscall_sem_wait(int sem) {
+    return ksem_wait(sem);
+}
+
+/**
+ * Posts a semaphore
+ * @param sem - semaphore id
+ * @return -1 on error, otherwise the current semaphore count
+ */
+int ksyscall_sem_post(int sem) {
+    return ksem_post(sem);
+}
+
