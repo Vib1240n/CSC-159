@@ -288,7 +288,7 @@ int ksyscall_proc_get_name(char *name) {
  * @return -1 on error, all other values indicate the mutex id
  */
 int ksyscall_mutex_init(void) {
-    return -1;
+    return kmutex_init();
 }
 
 /**
@@ -296,7 +296,7 @@ int ksyscall_mutex_init(void) {
  * @return -1 on error, 0 on sucecss
  */
 int ksyscall_mutex_destroy(int mutex) {
-    return -1;
+    return kmutex_destroy(mutex);
 }
 
 /**
@@ -306,7 +306,7 @@ int ksyscall_mutex_destroy(int mutex) {
  * @note If the mutex is already locked, process will block/wait.
  */
 int ksyscall_mutex_lock(int mutex) {
-    return -1;
+    return kmutex_lock(mutex);
 }
 
 /**
@@ -315,7 +315,7 @@ int ksyscall_mutex_lock(int mutex) {
  * @return -1 on error, 0 on sucecss
  */
 int ksyscall_mutex_unlock(int mutex) {
-    return -1;
+    return kmutex_unlock(mutex);
 }
 
 /**
@@ -324,7 +324,7 @@ int ksyscall_mutex_unlock(int mutex) {
  * @return -1 on error, all other values indicate the semaphore id
  */
 int ksyscall_sem_init(int value) {
-    return -1;
+    return ksem_init(value);
 }
 
 /**
@@ -333,7 +333,7 @@ int ksyscall_sem_init(int value) {
  * @return -1 on error, 0 on success
  */
 int ksyscall_sem_destroy(int sem) {
-    return -1;
+    return ksem_destroy(sem);
 }
 
 /**
@@ -342,7 +342,7 @@ int ksyscall_sem_destroy(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int ksyscall_sem_wait(int sem) {
-    return -1;
+    return ksem_wait(sem);
 }
 
 /**
@@ -351,6 +351,6 @@ int ksyscall_sem_wait(int sem) {
  * @return -1 on error, otherwise the current semaphore count
  */
 int ksyscall_sem_post(int sem) {
-    return -1;
+    return ksem_post(sem);
 }
 
